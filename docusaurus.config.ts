@@ -1,12 +1,81 @@
+import {existsSync, readFileSync} from 'node:fs';
+import path from 'node:path';
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 import type {ThemeConfig as MermaidThemeConfig} from '@docusaurus/theme-mermaid';
+import sidebars from './sidebars';
 
 const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
 const siteUrl = vercelHost ? `https://${vercelHost}` : 'http://localhost:3000';
 
 type ThemeConfig = Preset.ThemeConfig & MermaidThemeConfig;
+type SidebarEntry =
+  | string
+  | {
+      type?: string;
+      label?: string;
+      items?: SidebarEntry[];
+    };
+
+const tutorialSidebar =
+  (sidebars as {tutorialSidebar?: SidebarEntry[]}).tutorialSidebar ?? [];
+
+function collectSidebarDocIds(items: SidebarEntry[]): string[] {
+  return items.flatMap((item) => {
+    if (typeof item === 'string') {
+      return [item];
+    }
+
+    return item.items ? collectSidebarDocIds(item.items) : [];
+  });
+}
+
+function readDocTitle(id: string): string {
+  for (const extension of ['.md', '.mdx']) {
+    const filename = path.resolve(process.cwd(), 'docs', `${id}${extension}`);
+    if (!existsSync(filename)) {
+      continue;
+    }
+
+    const source = readFileSync(filename, 'utf8');
+    const frontMatter = source.match(/^---\s*\n([\s\S]*?)\n---/);
+    const title = frontMatter?.[1].match(/^title:\s*(.+)$/m)?.[1]?.trim();
+
+    if (title) {
+      return title.replace(/^['"]|['"]$/g, '');
+    }
+
+    const heading = source.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    if (heading) {
+      return heading.replace(/`/g, '');
+    }
+  }
+
+  return id.split('/').at(-1) ?? id;
+}
+
+function renderSidebarForLlms(items: SidebarEntry[], depth = 0): string[] {
+  return items.flatMap((item) => {
+    const indent = '  '.repeat(depth);
+
+    if (typeof item === 'string') {
+      return [`${indent}- [${readDocTitle(item)}](/docs/${item}.md)`];
+    }
+
+    const categoryLine = `${indent}- ${item.label ?? 'Untitled section'}`;
+    const children = item.items
+      ? renderSidebarForLlms(item.items, depth + 1)
+      : [];
+
+    return [categoryLine, ...children];
+  });
+}
+
+const sidebarDocIds = collectSidebarDocIds(tutorialSidebar);
+const llmsSidebar = renderSidebarForLlms(tutorialSidebar).join('\n');
+const llmsRootContent = `繁體中文 Agent Harness 教材，使用 OpenAI Codex 與 DeepSeek Harness 兩套實作，系統化介紹 Agent Loop、Context、Tools、State、Security、Extensions、Integration 與原始碼閱讀。\n\nSidebar navigation（網站的 canonical reading order）：\n${llmsSidebar}`;
+const llmsFullRootContent = `這是 Agent Harness 深度指南的完整 Markdown 合併版。內容依網站 Sidebar 的 canonical reading order 排列，適合直接提供給 LLM 作為完整教材 context。\n\nSidebar navigation：\n${llmsSidebar}`;
 
 const config: Config = {
   title: 'Agent Harness 深度指南',
@@ -39,6 +108,43 @@ const config: Config = {
       'zh-Hant': {label: '繁體中文'},
     },
   },
+
+  plugins: [
+    [
+      'docusaurus-plugin-llms',
+      {
+        generateLLMsTxt: true,
+        generateLLMsFullTxt: true,
+        generateMarkdownFiles: true,
+        preserveDirectoryStructure: true,
+        addMdExtension: true,
+        docsDir: 'docs',
+        title: 'Agent Harness 深度指南',
+        description:
+          '以 OpenAI Codex 與 DeepSeek Harness 兩套實作理解 Agent Harness architecture、使用方式、擴充、安全、整合與原始碼。',
+        includeOrder: sidebarDocIds.map((id) => `${id}.md`),
+        includeUnmatchedLast: false,
+        excludeImports: true,
+        removeDuplicateHeadings: true,
+        rootContent: llmsRootContent,
+        fullRootContent: llmsFullRootContent,
+      },
+    ],
+    [
+      'docusaurus-plugin-copy-page-button',
+      {
+        enabledActions: [
+          'copy',
+          'view',
+          'chatgpt',
+          'claude',
+          'perplexity',
+          'gemini',
+        ],
+        markdownUrl: true,
+      },
+    ],
+  ],
 
   presets: [
     [
