@@ -269,22 +269,31 @@ table td {
 
 @media (max-width: 996px) {
   .navbar {
+    z-index: 20000 !important;
+    isolation: isolate;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
 
   .navbar-sidebar {
-    z-index: 1100;
+    z-index: 2 !important;
     background: var(--ifm-background-surface-color);
   }
 
   .navbar-sidebar__backdrop {
-    z-index: 1090;
+    z-index: 1 !important;
   }
 
   .navbar-sidebar__brand,
-  .navbar-sidebar__items {
+  .navbar-sidebar__items,
+  .navbar-sidebar__item {
+    position: relative;
+    z-index: 3;
     background: var(--ifm-background-surface-color);
+  }
+
+  #copy-page-button-container {
+    z-index: 10 !important;
   }
 
   .theme-doc-markdown {

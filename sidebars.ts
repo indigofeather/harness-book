@@ -4,6 +4,8 @@ const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     'intro',
     'learning-map',
+    {type: 'link', label: 'llms.txt｜教材索引', href: '/llms.txt'},
+    {type: 'link', label: 'llms-full.txt｜完整教材', href: '/llms-full.txt'},
     {
       type: 'category', label: '一、先理解 Agent 怎麼工作', collapsed: true,
       items: [
