@@ -9,8 +9,8 @@ const siteUrl = vercelHost ? `https://${vercelHost}` : 'http://localhost:3000';
 type ThemeConfig = Preset.ThemeConfig & MermaidThemeConfig;
 
 const config: Config = {
-  title: 'Codex Harness 深度指南',
-  tagline: '從 agent loop 到 production：理解、使用並延伸 OpenAI Codex harness',
+  title: 'Agent Harness 深度指南',
+  tagline: '以 Codex 與 DeepSeek Harness 理解 Agent Runtime、架構取捨與 production integration',
   favicon: 'img/favicon.svg',
 
   future: {
@@ -70,12 +70,15 @@ const config: Config = {
     },
     image: 'img/social-card.svg',
     navbar: {
-      title: 'Codex Harness',
-      logo: {alt: 'Codex Harness', src: 'img/logo.svg'},
+      title: 'Agent Harness',
+      logo: {alt: 'Agent Harness', src: 'img/logo.svg'},
       items: [
         {type: 'docSidebar', sidebarId: 'tutorialSidebar', position: 'left', label: '教材'},
+        {to: '/docs/deepseek/overview', label: 'DeepSeek Harness', position: 'left'},
+        {to: '/docs/comparison/codex-vs-deepseek', label: 'Codex vs DeepSeek', position: 'left'},
         {to: '/docs/reference/source-map', label: '原始碼導讀', position: 'left'},
         {href: 'https://github.com/openai/codex', label: 'openai/codex', position: 'right'},
+        {href: 'https://github.com/deepseek-ai/deepseek-harness', label: 'deepseek-harness', position: 'right'},
         {href: 'https://github.com/indigofeather/codex-harness', label: 'GitHub', position: 'right'},
       ],
     },
@@ -86,8 +89,9 @@ const config: Config = {
           title: '學習',
           items: [
             {label: '從這裡開始', to: '/docs/intro'},
-            {label: '架構總覽', to: '/docs/architecture/system-map'},
-            {label: '實戰 Labs', to: '/docs/labs/trace-a-turn'},
+            {label: 'Codex 架構總覽', to: '/docs/architecture/system-map'},
+            {label: 'DeepSeek Harness', to: '/docs/deepseek/overview'},
+            {label: '兩者比較', to: '/docs/comparison/codex-vs-deepseek'},
           ],
         },
         {
@@ -95,11 +99,12 @@ const config: Config = {
           items: [
             {label: 'Codex Docs', href: 'https://learn.chatgpt.com/docs/codex'},
             {label: 'Codex GitHub', href: 'https://github.com/openai/codex'},
-            {label: 'App Server', href: 'https://learn.chatgpt.com/docs/app-server'},
+            {label: 'DeepSeek Harness', href: 'https://deepseek.com/harness/en/'},
+            {label: 'DeepSeek Harness GitHub', href: 'https://github.com/deepseek-ai/deepseek-harness'},
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Codex Harness 深度指南。非 OpenAI 官方教材。`,
+      copyright: `© ${new Date().getFullYear()} Agent Harness 深度指南。非 OpenAI 或 DeepSeek 官方教材。`,
     },
     prism: {
       theme: prismThemes.github,
