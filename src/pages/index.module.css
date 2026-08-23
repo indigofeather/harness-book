@@ -1,12 +1,38 @@
 .heroBanner {
-  padding: 5.5rem 0;
+  padding: 5.75rem 0 5.25rem;
   text-align: center;
+}
+
+.heroContent {
+  display: flex;
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.heroContent :global(.hero__title) {
+  max-width: 920px;
+  margin-inline: auto;
+  color: #f7fbf8;
+  text-wrap: balance;
+}
+
+.heroContent :global(.hero__subtitle) {
+  max-width: 820px;
+  margin: 0.85rem auto 0;
+  color: rgba(247, 251, 248, 0.9);
+  text-wrap: balance;
 }
 
 .heroHint {
   max-width: 760px;
   margin: 1rem auto 0;
-  opacity: 0.9;
+  color: rgba(232, 242, 237, 0.78);
+  line-height: 1.7;
+  text-wrap: balance;
 }
 
 .buttons {
@@ -14,11 +40,55 @@
   justify-content: center;
   gap: 0.8rem;
   flex-wrap: wrap;
-  margin-top: 1.6rem;
+  margin-top: 1.75rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-width: 9.5rem;
+  border-width: 1px;
+  font-weight: 700;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.primaryButton {
+  border-color: #f2f7f4;
+  background: #f2f7f4;
+  color: #173b32 !important;
+}
+
+.primaryButton:hover {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #0f3028 !important;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  border-color: rgba(224, 240, 233, 0.62);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5faf7 !important;
+}
+
+.secondaryButton:hover {
+  border-color: rgba(240, 249, 245, 0.92);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 3px solid rgba(231, 247, 240, 0.42);
+  outline-offset: 3px;
 }
 
 .section {
-  padding: 3.5rem 0;
+  padding: 4rem 0;
 }
 
 .altSection {
@@ -27,13 +97,18 @@
 
 .sectionHeader {
   max-width: 760px;
-  margin: 0 auto 2rem;
+  margin: 0 auto 2.25rem;
   text-align: center;
+}
+
+.sectionHeader h2 {
+  text-wrap: balance;
 }
 
 .sectionHeader p {
   margin-bottom: 0;
   color: var(--ifm-color-emphasis-700);
+  line-height: 1.75;
 }
 
 .layerFlow {
@@ -50,19 +125,20 @@
 
 .layerCard {
   height: 100%;
-  padding: 1.35rem;
+  padding: 1.4rem;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 14px;
   background: var(--ifm-card-background-color);
 }
 
 .layerCard h3 {
-  margin: 0.35rem 0 0.55rem;
+  margin: 0.4rem 0 0.6rem;
 }
 
 .layerCard p {
   margin: 0;
   color: var(--ifm-color-emphasis-700);
+  line-height: 1.7;
 }
 
 .layerIndex {
@@ -73,7 +149,7 @@
   height: 2rem;
   border-radius: 999px;
   font-weight: 700;
-  background: var(--ifm-color-primary-lightest);
+  background: color-mix(in srgb, var(--ifm-color-primary) 14%, var(--ifm-background-surface-color));
   color: var(--ifm-color-primary-darkest);
 }
 
@@ -87,12 +163,17 @@
 }
 
 .flowNote {
-  margin: 1.6rem auto 0;
+  margin: 1.75rem auto 0;
   text-align: center;
   font-size: 1.05rem;
+  line-height: 1.7;
 }
 
 @media (max-width: 996px) {
+  .heroBanner {
+    padding: 4.75rem 0 4.25rem;
+  }
+
   .layerFlow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -104,10 +185,38 @@
 
 @media (max-width: 576px) {
   .heroBanner {
-    padding: 3.75rem 0;
+    padding: 3.75rem 0 3.5rem;
+  }
+
+  .heroContent :global(.hero__title) {
+    font-size: 2.15rem;
+  }
+
+  .heroContent :global(.hero__subtitle) {
+    font-size: 1.05rem;
+  }
+
+  .buttons {
+    width: 100%;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+
+  .section {
+    padding: 3rem 0;
   }
 
   .layerFlow {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton,
+  .secondaryButton {
+    transition: none;
   }
 }
