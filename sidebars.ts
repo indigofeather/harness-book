@@ -64,12 +64,17 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '七、DeepSeek Harness：另一種設計哲學', collapsed: false,
+      type: 'category', label: '七、DeepSeek Harness：完整導讀', collapsed: false,
       items: [
         'deepseek/overview',
         'deepseek/architecture',
+        'deepseek/usage-and-profiles',
         'deepseek/session-and-events',
+        'deepseek/models-skills-and-extensions',
         'deepseek/code-mode-and-plugins',
+        'deepseek/security-and-approvals',
+        'deepseek/integration-surfaces',
+        'deepseek/production-and-testing',
       ],
     },
     {
@@ -91,7 +96,9 @@ const sidebars: SidebarsConfig = {
       type: 'category', label: '十、參考資料',
       items: [
         'reference/glossary',
+        'reference/source-reading',
         'reference/source-map',
+        'reference/deepseek-source-map',
         'reference/reading-list',
       ],
     },

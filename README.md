@@ -1,8 +1,26 @@
 # Agent Harness 深度指南
 
-一個以繁體中文撰寫的 Docusaurus 教材專案，先用 OpenAI Codex 建立完整 Coding Agent Harness 心智模型，再加入 DeepSeek Harness 作為第二套架構 case study，最後從 Runtime Core、Model Provider、Agent Loop、State、Tool Orchestration、Sandbox、Extension System 與 Production Maturity 等面向逐項比較。
+一個以繁體中文撰寫的 Docusaurus 教材專案，用 **OpenAI Codex** 與 **DeepSeek Harness** 兩套實作系統化理解 Agent Harness：先建立共同的 Model / Loop / Tool / State / Policy 心智模型，再分別深入兩邊的架構、使用、擴充、安全、整合與原始碼，最後用相同維度比較設計取捨。
 
-> 本專案不是 OpenAI 或 DeepSeek 官方教材。內容以 OpenAI / DeepSeek 官方文件、工程文章，以及 `openai/codex`、`deepseek-ai/deepseek-harness` 開源原始碼交叉核對；最後系統性核對日期為 2026-08-23。
+> 本專案不是 OpenAI 或 DeepSeek 官方教材。內容以官方文件、工程文章，以及 `openai/codex`、`deepseek-ai/deepseek-harness` 開源原始碼交叉核對；最後系統性核對日期為 2026-08-23。
+
+## 教材原則
+
+兩套 Harness 採 **對稱覆蓋**，避免把其中一套當主角、另一套只當附錄。核心問題都會盡量從兩邊回答：
+
+```text
+Runtime 怎麼拆？
+Model 怎麼接？
+Agent Loop 怎麼跑？
+State 怎麼保存與重建？
+Tools 怎麼註冊與執行？
+怎麼擴充？
+Sandbox / Approval 怎麼做？
+怎麼實際啟動與設定？
+怎麼嵌入自製 Client？
+Production correctness 怎麼驗證？
+原始碼該從哪裡讀？
+```
 
 ## 內容
 
@@ -12,41 +30,47 @@
 - Agent Loop 與 Think → Act → Observe
 - Context、Prompt Caching、Compaction
 - Tool、Environment、Policy、State
+- Thread / Turn / Item 等 Agent lifecycle primitives
 
 ### Codex Harness
 
-- Thread / Turn / Item lifecycle
 - `codex-core` 與 Rust workspace 架構
-- App Server / Protocol / Event Stream
-- Model Provider / Streaming / Retry
-- Tool Execution / MCP / Hooks
-- State / Rollout / Persistence
-- Sandbox / Approvals / Permissions / Rules / Network
-- Config / AGENTS.md / Skills / Plugins
-- Subagents / Git Worktrees
-- CLI / `codex exec` / SDK / App Server / GitHub Actions
+- Agent Loop、Context、Model Provider / Streaming
+- Thread / Turn / Item、Rollout、Persistence
+- Tool Execution、Shell、MCP
+- Sandbox、Approvals、Permissions、Rules、Network
+- Config、AGENTS.md、Skills、Plugins、Hooks
+- Subagents、Git Worktrees
+- CLI、`codex exec`、SDK、App Server、GitHub Actions
 - Production Workflow 與自製 Harness Architecture
+- `openai/codex` 原始碼導讀地圖
 
 ### DeepSeek Harness
 
 - Cordis 與 Everything is a Plugin
-- Service / Provider / Consumer / Capability Seam
-- Session / Turn / Step / SessionEvent
-- Event-sourced State、Resume、Fork、Replay
+- Service Definition / Provider / Consumer / Capability Seam
+- Profiles、Bundles、`cordis.patch.yml` 與 Plugin Tree
+- LLM Adapter、Agent Loop、Turn / Step
+- SessionEvent、Persistence、Projection、Replay、Fork
+- Skills、Subagents、Workflow、Jobs、Hooks、Extensions
 - Standard / Code / Minimal / Creator Mode
 - Code Mode 與 TypeScript Tool Orchestration
-- Replaceable Model / Loop / Sandbox / Storage / UI
+- Sandbox、full / partial enforcement、Approval、Permission Presets、Credentials
+- Web Host / Client、TypeScript SDK、stdio JSON-RPC、ACP、Typert
+- Invariants、Replay、Test Support、Telemetry、Session Query
+- `deepseek-ai/deepseek-harness` 原始碼導讀地圖
 
 ### Codex vs DeepSeek
 
 - Runtime Center 與 Composition Philosophy
-- Custom Model Provider 與 Multi-model Orchestration
+- Custom Model Provider 與 Multi-model / Multi-runtime Orchestration
 - Agent Loop 可替換性
-- Thread / Turn / Item vs SessionEvent
-- Tool Calling vs Code Mode
-- Security / Execution Backend
-- App / IDE Integration
-- Production Maturity
+- Thread / Turn / Item vs Session / Turn / Step / SessionEvent
+- Iterative Tool Calling vs Code Mode / Workflow
+- Extension semantics vs Plugin / Capability Seam
+- Sandbox / Approval / Credential architecture
+- App Server vs SDK / JSON-RPC / ACP / Host / Client
+- Production Maturity 與 API Stability
 - Harness 技術選型指南
 
 ## Local development
@@ -91,7 +115,8 @@ Output Directory: build
 - https://deepseek.com/harness/en/
 - https://github.com/deepseek-ai/deepseek-harness
 - https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md
-- https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md
+- https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md
+- https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/README.md
 
 ## License / attribution
 

@@ -76,7 +76,7 @@ const config: Config = {
         {type: 'docSidebar', sidebarId: 'tutorialSidebar', position: 'left', label: '教材'},
         {to: '/docs/deepseek/overview', label: 'DeepSeek Harness', position: 'left'},
         {to: '/docs/comparison/codex-vs-deepseek', label: 'Codex vs DeepSeek', position: 'left'},
-        {to: '/docs/reference/source-map', label: '原始碼導讀', position: 'left'},
+        {to: '/docs/reference/source-reading', label: '原始碼導讀', position: 'left'},
         {href: 'https://github.com/openai/codex', label: 'openai/codex', position: 'right'},
         {href: 'https://github.com/deepseek-ai/deepseek-harness', label: 'deepseek-harness', position: 'right'},
         {href: 'https://github.com/indigofeather/codex-harness', label: 'GitHub', position: 'right'},
@@ -92,6 +92,7 @@ const config: Config = {
             {label: 'Codex 架構總覽', to: '/docs/architecture/system-map'},
             {label: 'DeepSeek Harness', to: '/docs/deepseek/overview'},
             {label: '兩者比較', to: '/docs/comparison/codex-vs-deepseek'},
+            {label: '雙 Harness 原始碼導讀', to: '/docs/reference/source-reading'},
           ],
         },
         {

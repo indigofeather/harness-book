@@ -4,19 +4,19 @@ title: DeepSeek Harness：先建立正確心智模型
 
 # DeepSeek Harness：先建立正確心智模型
 
-> 最後核對：2026-08-23。DeepSeek Harness 目前仍標示為 **developer preview**，官方明確提醒 API 與相容性仍可能出現破壞性變更。本章把穩定的架構思想與版本敏感的操作細節分開。
+> 最後核對：2026-08-23。DeepSeek Harness 整體目前仍標示為 **developer preview**；同時官方 package map 已把不少核心 packages 標成 Product / stable API。教材會把「架構原則」「package contract」「產品整體成熟度」分開討論。
 
-前面的教材主要用 Codex 說明 Harness。現在換一個刻意採取不同架構哲學的實作：**DeepSeek Harness（`dsh`）**。
+前面的教材主要用 Codex 建立 Harness 心智模型。現在換一個刻意採取不同架構哲學的實作：**DeepSeek Harness（`dsh`）**。
 
-先記住最重要的一句：
+先記住一句：
 
-> **Codex 比較像一套完成度很高、核心明確的 Agent Runtime；DeepSeek Harness 則把 Runtime 本身拆成可組合的 Plugins。**
+> **Codex 比較像一套核心明確、產品化程度高的 Agent Runtime；DeepSeek Harness 則把 Runtime 本身拆成可組合的 Plugins 與 Capability Seams。**
 
 這不是在比較 GPT 與 DeepSeek 模型能力，而是在比較兩套 **Harness architecture**。
 
 ## DeepSeek Harness 不是「只能跑 DeepSeek 模型」
 
-名稱很容易造成誤解。DeepSeek Harness 是 DeepSeek AI 開源的 agent harness，但架構中的 Model Adapter 本身也是 Plugin。
+Model Adapter 本身就是 capability family。
 
 ```mermaid
 flowchart LR
@@ -30,8 +30,8 @@ flowchart LR
 所以更精確的理解是：
 
 ```text
-DeepSeek Harness = 一套可組合 Agent Runtime
-DeepSeek Model   = 其中一種可以被接入的 Model
+DeepSeek Harness = 可組合 Agent Runtime
+DeepSeek Model   = 可接入的其中一種 Model
 ```
 
 ## 一張圖先看整體
@@ -42,15 +42,15 @@ DeepSeek 官方的核心口號是：**Everything is a Plugin**。
 flowchart TB
   C[Cordis Kernel]
 
-  C --> M[Model Adapter Plugin]
-  C --> T[Tool Registry Plugin]
-  C --> L[Agent Loop Plugin]
-  C --> S[Session Plugin]
-  C --> SB[Sandbox Plugin]
-  C --> ST[Storage Plugin]
-  C --> SK[Skills Plugin]
-  C --> J[Scheduler / Jobs Plugin]
-  C --> UI[UI Plugin]
+  C --> M[Model Adapter]
+  C --> T[Tool Registry]
+  C --> L[Agent Loop]
+  C --> S[Session Log]
+  C --> SB[Sandbox]
+  C --> ST[Storage]
+  C --> SK[Skills]
+  C --> SA[Subagents]
+  C --> UI[UI / SDK / ACP]
 
   L --> A[Running Agent]
   M --> A
@@ -59,103 +59,29 @@ flowchart TB
   SB --> A
 ```
 
-Codex 也有 Skills、MCP、Hooks、Providers 等 extension points，但 DeepSeek 更進一步：**連 agent loop、session log、model adapter、sandbox 與 UI 都屬於可配置的 plugin tree。**
+Codex 也有 Skills、MCP、Hooks、Providers 等 extension points；DeepSeek 更進一步，把 **Agent Loop、Session、Model Adapter、Sandbox、Storage、UI integration 本身**都放進 composition system。
 
 ## Cordis 是什麼？
 
 如果把 DeepSeek Harness 比喻成一台電腦：
 
 ```text
-Cordis          ≈ 微核心 + Dependency / Lifecycle Runtime
-Plugins         ≈ 可插拔系統服務
-DeepSeek Harness≈ 用這些服務組成的 Agent Runtime
+Cordis           ≈ 微核心 + Dependency / Lifecycle Runtime
+Plugins          ≈ 可插拔系統服務
+DeepSeek Harness ≈ 用這些服務組成的 Agent Runtime
 ```
 
 Cordis 負責：
 
-- plugin mounting / unmounting；
+- plugin mount / unmount；
 - dependency；
 - shared context services；
 - typed events；
 - reversible effects。
 
-真正的 Agent 能力則由 Plugins 提供。
+真正的 Agent 能力由 Plugins 提供。
 
-這也是官方所說「沒有 privileged core 需要 patch」的真正意思：新增能力通常是**掛一個 Plugin 到現有 composition**，而不是先修改一個中央核心。
-
-## 四種官方 Runtime Mode
-
-目前官方頁面把使用方式整理成四種 Mode。
-
-| Mode | 心智模型 | 適合 |
-|---|---|---|
-| Standard | 完整 Coding Agent | 一般開發工作 |
-| Code | Model 用 TypeScript 組合多步 Tool 操作 | 降低大量 Tool round trip |
-| Minimal | 只保留極少數核心 Tool | Benchmark / Harness 研究 |
-| Creator | 可以觀察、實驗並組裝 Plugins | 建立自己的 Agent Preset |
-
-### Standard Mode
-
-最接近一般人熟悉的 Coding Agent：
-
-```text
-Model
-→ Files / Shell / Search / Skills / Planning / Subagents
-→ Observe result
-→ Continue
-```
-
-### Code Mode
-
-這是 DeepSeek Harness 很有代表性的設計。
-
-傳統 Tool Calling：
-
-```mermaid
-sequenceDiagram
-  participant M as Model
-  participant H as Harness
-  participant T as Tools
-  M->>H: tool A
-  H->>T: execute A
-  T-->>H: result A
-  H-->>M: result A
-  M->>H: tool B
-  H->>T: execute B
-  T-->>H: result B
-  H-->>M: result B
-```
-
-Code Mode 則可以把多個操作組成一段 TypeScript：
-
-```mermaid
-flowchart LR
-  M[Model] --> P[Generate TypeScript Program]
-  P --> R[Code Runtime]
-  R --> A[Tool A]
-  R --> B[Tool B]
-  R --> C[Loop / Condition / Aggregate]
-  A --> O[Combined Result]
-  B --> O
-  C --> O
-  O --> M
-```
-
-重點不是「讓模型任意執行 JS」，而是讓 Tool Registry 用一個受控的 Code Runtime 暴露可用 bindings，讓多步 orchestration 可以在一次 model step 中完成。
-
-### Minimal Mode
-
-刻意把 Harness 壓到很小，例如只剩 persistent Bash 與 file editor。
-
-它特別適合研究：
-
-> **到底是 Model 本身變強，還是 Harness 提供太多輔助能力？**
-
-### Creator Mode
-
-Creator Mode 更像 Harness Developer Workbench：可以觀察 Runtime、測試 Plugin、組出新的 Preset。
-
-這反映 DeepSeek Harness 的產品定位不只是在「用 Agent」，也包含「造 Agent Runtime」。
+這也是「沒有 privileged core 需要 patch」的核心意思：新增行為通常是掛新的 Plugin / Provider / Consumer，而不是修改一個中央 Agent Core。
 
 ## DeepSeek 的核心資料模型
 
@@ -165,7 +91,7 @@ Codex 對外最容易理解的是：
 Thread → Turn → Item
 ```
 
-DeepSeek Harness 則更強調 append-only event log：
+DeepSeek Harness 更強調 append-only event log：
 
 ```mermaid
 flowchart TB
@@ -179,52 +105,126 @@ flowchart TB
   S --> E7[turn/end]
 ```
 
-後續的 Resume、Fork、Replay、Trajectory 與 Context reconstruction 都能從同一個 durable event stream 推導。
+後續的 Context reconstruction、Resume、Fork、Replay、UI projection 與 telemetry 都能從 durable events 推導。
 
-這部分會在 [Session、Events 與可追溯狀態](./session-and-events.md) 詳細拆解。
+## Step 是很重要的額外 primitive
 
-## DeepSeek Harness 最值得學的不是 API
-
-由於它仍在 developer preview，現在背所有 package / config key 的投資報酬率不高。
-
-更值得帶走的是四個架構思想：
-
-1. **Everything is a Plugin**：連 Loop 與 Storage 都可以是 composition。
-2. **Capability Seam**：Consumer 依賴抽象 service，不依賴具體 backend。
-3. **Event-sourced Session**：模型看過的重要事實都進 durable log。
-4. **Code Mode**：讓 Model 不只選 Tool，也能產生受控的 Tool orchestration program。
-
-## 這和 Codex 的差異先不要急著下結論
-
-兩者的強項不同：
+DeepSeek 定義：
 
 ```text
-Codex
-→ opinionated runtime
-→ stable product integration
-→ App Server / Thread / Turn / Item
-→ coding-agent security 與 UX 完整度高
-
-DeepSeek Harness
-→ composable runtime
-→ plugin-first
-→ event-sourced session
-→ loop / provider / sandbox / storage 可替換性高
+Step = 一次 Model Request + 這次回應產生的 Tool Calls
+Turn = 0 個或多個 Steps
+Session = 多個 Turns 的 durable event stream
 ```
 
-詳細比較請放到後面的 [Codex vs DeepSeek Harness](../comparison/codex-vs-deepseek.md)，不要在還沒理解 DeepSeek 本身前，只用「誰比較強」來讀它。
+所以一次 Turn 可能：
 
-## 建議閱讀順序
+```text
+Step 1 → Model 看檔案並呼叫 Tool
+Step 2 → Model 看 Tool Result 再修改
+Step 3 → Model 跑 Test 後完成
+```
+
+這和 Codex 的 Turn 內部多次 Model / Tool 往返概念相近，但 DeepSeek 把 Step 本身明確做成 durable lifecycle vocabulary。
+
+## 四種 Runtime Mode
+
+目前官方總覽把典型使用方式整理成四種模式：
+
+| Mode | 心智模型 | 適合 |
+|---|---|---|
+| Standard | 完整 Agent | 一般工作 |
+| Code | 用 TypeScript 編排多步 Tool | 降低 round trip / batch orchestration |
+| Minimal | 極小 Tool Surface | Benchmark / Harness 研究 |
+| Creator | 觀察與重組 Plugins | Runtime 實驗 / Plugin 開發 |
+
+### Code Mode
+
+傳統 Tool Calling：
+
+```text
+Model → Tool A → Model → Tool B → Model → Tool C
+```
+
+Code Mode 可以變成：
+
+```text
+Model
+→ 產生受控 TypeScript Tool Program
+→ Code Runtime 執行 Tool A / B / C、Loop、Condition、Aggregate
+→ Combined Result
+→ Model
+```
+
+這不等於允許任意 JavaScript；Model 只能使用 Runtime 暴露的 bindings。
+
+## DeepSeek 不只是「架構實驗框架」
+
+為了和 Codex 公平比較，教材不會只介紹 Cordis / Code Mode。
+
+目前 DeepSeek 官方 repo 已有完整的 subsystem families：
+
+```text
+LLM streaming
+Prompt / Context
+Tools
+Shell / FS / Terminal / LSP / Web
+Sandbox / Approval / Permission Presets
+Skills / Subagents / Workflows
+Session / Persistence / Query / Projection
+Settings / Credentials / Storage
+SDK / JSON-RPC / ACP
+Web Host / Client
+Telemetry / Guards / Invariants / Test Support
+```
+
+因此後面的 DeepSeek 區塊也會用和 Codex 相同的問題來讀，而不是把它當附錄。
+
+## 對稱學習矩陣
+
+| Harness 問題 | Codex 教材 | DeepSeek 教材 |
+|---|---|---|
+| Runtime 怎麼拆 | `codex-core` / App Server | Cordis / Service / Provider / Consumer |
+| 怎麼啟動與設定 | Config / CLI | Profiles / Bundles / Patches |
+| Model 怎麼接 | Model Provider | LLM Adapter Seam |
+| Loop 怎麼跑 | Agent Loop / Turn | Agent Loop / Turn / Step |
+| State 怎麼存 | Thread / Rollout / Store | SessionEvent / Persistence / Projection |
+| Tool 怎麼執行 | Tool Router / Exec | Tool Registry / Capability Provider |
+| 怎麼擴充 | Skill / MCP / Hook / Subagent | Skills / MCP pattern / Hooks / Extensions / Subagents |
+| 安全怎麼做 | Sandbox / Approval / Rules | Sandbox / Approval / Permission Presets / Credentials |
+| 怎麼嵌入產品 | App Server / SDK / exec | Web / SDK JSON-RPC / ACP / Typert |
+| Production correctness | tests / protocol / product runtime | Invariants / Replay / Test Support / Telemetry |
+| 原始碼怎麼讀 | Codex Source Map | DeepSeek Source Map |
+
+這才是本教材後續比較兩者的基準。
+
+## DeepSeek 最值得學的六個架構思想
+
+1. **Everything is a Plugin**：Runtime responsibilities 本身可以 composition。
+2. **Capability Seam**：Consumer 依賴 Service Definition，不依賴具體 backend。
+3. **Event-sourced Session**：Model-visible durable facts 可以重建。
+4. **Code Mode**：Model 可以用受控程式一次編排多個 Tool operation。
+5. **Profile / Bundle Composition**：啟動的不是固定 binary 行為，而是一棵可 inspect / patch 的 Plugin Tree。
+6. **Protocol / UI 也可組合**：SDK、ACP、Host / Client 都是 runtime boundary 的不同選擇。
+
+## 建議完整閱讀順序
 
 1. 本章：建立全局心智模型。
 2. [Cordis 與 Plugin 架構](./architecture.md)。
-3. [Session、Events 與可追溯狀態](./session-and-events.md)。
-4. [Code Mode、Capability 與 Runtime 組合](./code-mode-and-plugins.md)。
-5. [Codex vs DeepSeek Harness](../comparison/codex-vs-deepseek.md)。
+3. [使用方式：Profiles、Bundles 與啟動組合](./usage-and-profiles.md)。
+4. [Session、Events 與可追溯狀態](./session-and-events.md)。
+5. [Models、Skills、Subagents、Hooks 與 Extensions](./models-skills-and-extensions.md)。
+6. [Code Mode、Capability 與 Runtime 組合](./code-mode-and-plugins.md)。
+7. [安全模型：Sandbox、Approval 與 Permission Presets](./security-and-approvals.md)。
+8. [整合介面：Web、SDK、JSON-RPC、ACP 與自製 Client](./integration-surfaces.md)。
+9. [Production、測試、Invariant 與成熟度](./production-and-testing.md)。
+10. [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](../reference/deepseek-source-map.md)。
+11. [Codex vs DeepSeek Harness](../comparison/codex-vs-deepseek.md)。
 
 ## 官方來源
 
 - [DeepSeek Harness](https://deepseek.com/harness/en/)
 - [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness)
 - [Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
-- [Core subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md)
+- [`packages/README.md`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md)
+- [Subsystem index](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/README.md)
