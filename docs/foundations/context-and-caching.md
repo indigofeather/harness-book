@@ -4,101 +4,373 @@ title: Context、Instructions、Caching 與 Compaction
 
 # Context、Instructions、Caching 與 Compaction
 
-對 agent 而言，context 不是單純聊天紀錄，而是「當下世界模型」。Harness 的一項核心工作，就是把大量異質資訊轉成有限 context window 內的有效狀態。
+如果 Model 是大腦，那 **Context 就是它此刻桌面上能看到的全部資料**。
 
-## Context 的四種材料
+Model 不會自動知道整個 repository，也不會永久記得前面所有事情。Harness 每一輪都要決定：
 
-### 穩定 instructions
+> **這次到底要把哪些資訊放到 Model 面前？**
 
-模型級 base instructions、平台能力說明、安全/執行規則。它們應盡量穩定，因為是所有後續 request 的 prefix。
+這就是 context orchestration。
 
-### 專案 instructions
+## 初學者版：Context 像工作桌，不是整間倉庫
 
-AGENTS.md、project config 衍生資訊、開發慣例。它們的目標不是描述整個 repository，而是提供「模型無法從程式碼本身可靠推斷」的規則。
+想像你在修一台機器。
 
-### 能力描述
+倉庫裡可能有：
 
-Tool schemas、MCP tool metadata、Skills 的 name/description。這決定模型知道有哪些 action 可以選。
+- 幾萬個零件；
+- 幾百本手冊；
+- 過去所有維修紀錄；
+- 各種工具。
 
-### 動態 history
+但你不會把整個倉庫全部搬到工作桌上。
 
-User messages、reasoning items、tool calls、tool results、file edits、assistant messages。這是增長最快的一層。
+你只會放：
 
-## Instruction hierarchy 與「來源」是兩回事
+- 這次維修的目標；
+- 相關手冊；
+- 現在正在拆的零件；
+- 需要的工具；
+- 剛剛測量出的結果。
 
-使用 Codex 時常見錯誤，是把所有規則都塞進同一個 AGENTS.md。實際上應同時考慮：
+Agent 的 context 也是一樣。
 
-- **語意優先權**：system / developer / user 等訊息角色。
-- **檔案搜尋範圍**：global AGENTS、project root、nested directory。
-- **config precedence**：CLI override、project config、profile、user config、system config。
-- **policy enforcement**：rules / permissions 並不是靠模型「遵守文字」而已。
+```mermaid
+flowchart LR
+  W[大量可用資訊\nRepo / History / Tools / Rules] --> H[Harness\n選擇與整理]
+  H --> C[有限 Context Window]
+  C --> M[Model]
+```
 
-也就是說，一條「不要刪 production DB」若只寫在 prompt，是 advisory；若必須不可違反，應配合實際 permission / execution boundary。
+**Context 的目標不是越多越好，而是「現在最有用的資訊」越完整越好。**
 
-## Prefix caching 的工程價值
+## Context 通常由哪些東西組成？
 
-對長任務，前綴可能包含大量 instructions、tools schema 與 history。若第 N 次 model call 可以重用前 N-1 次的完整前綴，成本與 latency 都更可控。
+可以先分成四層。
 
-因此 context 的工程原則通常是：
+```mermaid
+flowchart TB
+  A[① Stable Instructions\n模型 / 平台 / 安全規則]
+  B[② Project Guidance\nAGENTS.md / project rules]
+  C[③ Capabilities\nTools / MCP / Skills metadata]
+  D[④ Dynamic History\nUser / Tool / Agent events]
+  A --> B --> C --> D
+```
 
-1. Stable content 放前面。
-2. Append new events，少改舊 event。
-3. 不要無理由重新格式化 instructions。
-4. tool schema 排序要 deterministic。
-5. 真正需要重寫 history 時，才做 compaction。
+### 1. Stable instructions
 
-## Compaction 不是普通 Summary
+幾乎每輪都需要，例如：
 
-Context 快滿時，harness 必須把舊狀態壓縮。好的 compaction 要保存的是「後續決策所需狀態」，例如：
+- base instructions；
+- 平台能力說明；
+- 安全與執行規則。
 
-- user 的目標與硬性 constraints；
-- 已讀過與已修改的關鍵檔案；
-- 已驗證或已排除的假設；
-- 尚未完成的工作；
-- tool-side state 的必要 locator；
-- 不能遺失的授權/安全脈絡。
+這些通常放在前面，並且盡量穩定。
 
-而不是把對話寫成一篇漂亮摘要。
+### 2. Project guidance
+
+例如：
+
+- AGENTS.md；
+- repository conventions；
+- 專案特定限制。
+
+它們提供「從程式碼本身不一定看得出來」的規則。
+
+### 3. Capabilities
+
+讓 Model 知道自己有哪些 action 可以選：
+
+- shell tool schema；
+- file tools；
+- MCP tools；
+- Skill name / description。
+
+### 4. Dynamic history
+
+任務跑起來後持續增加：
+
+- user messages；
+- tool calls；
+- tool results；
+- file edits；
+- agent messages；
+- reasoning / events。
+
+這一層通常是最容易把 context 撐大的地方。
+
+## 一次 Model Call 看到的是「Context Snapshot」
+
+不要把 Model 想成一直在線、一直看著你的電腦。
+
+比較接近：
+
+```mermaid
+sequenceDiagram
+  participant H as Harness
+  participant M as Model
+
+  H->>M: Snapshot #1\nInstructions + history + user request
+  M-->>H: Read file
+  H->>H: Tool executes
+  H->>M: Snapshot #2\n原本內容 + file result
+  M-->>H: Run tests
+  H->>H: Tool executes
+  H->>M: Snapshot #3\n原本內容 + test result
+  M-->>H: Final answer
+```
+
+每一次 inference，Harness 都要重新提供 Model 所需的世界狀態。
+
+## Instruction hierarchy 和「資訊來源」不要混在一起
+
+這裡有四個不同概念，很容易混淆。
+
+```mermaid
+flowchart TB
+  A[Instruction Role\nSystem / Developer / User]
+  B[File Scope\nGlobal / Root / Nested AGENTS]
+  C[Config Precedence\nCLI / Project / Profile / User]
+  D[Enforcement\nRules / Permissions / Sandbox]
+```
+
+它們回答的是不同問題：
+
+- **Instruction role**：語意上誰優先？
+- **File scope**：哪個目錄下應套用哪份 guidance？
+- **Config precedence**：多份設定衝突時誰覆蓋誰？
+- **Enforcement**：某件事是真的做不到，還是只有文字叫 Model 不要做？
+
+例如：
+
+```text
+「不要刪 production DB」
+```
+
+如果只寫在 AGENTS.md，它仍主要是 instruction。
+
+如果這件事必須不可違反，就要再搭配真正的 permission / execution boundary。
+
+## Prompt Caching 為什麼和 Harness 有關？
+
+假設第一輪 context 是：
+
+```text
+[A B C D]
+```
+
+第二輪只是追加新的 tool call / result：
+
+```text
+[A B C D E F]
+```
+
+第三輪：
+
+```text
+[A B C D E F G H]
+```
+
+```mermaid
+flowchart LR
+  R1[Round 1\nA B C D] --> R2[Round 2\nA B C D + E F]
+  R2 --> R3[Round 3\nA B C D E F + G H]
+```
+
+前綴保持完全一致時，provider 比較容易重用 prefix cache。
+
+所以 Harness 不只在乎「內容意思差不多」，還在乎：
+
+- 順序是否穩定；
+- 格式是否穩定；
+- tool schema 是否 deterministic；
+- 是否只追加新的 events。
+
+## 為什麼「每輪重新整理成漂亮摘要」可能反而不好？
+
+假設上一輪是：
+
+```text
+[A B C D]
+```
+
+下一輪 Harness 自作聰明改成：
+
+```text
+[A C B D]
+```
+
+語意可能沒有差很多，但 exact prefix 已經變了。
 
 ```mermaid
 flowchart TD
-  H[Growing history] --> B{Near context budget?}
-  B -->|No| A[Append next event]
-  B -->|Yes| C[Select durable facts]
-  C --> D[Compact older history]
-  D --> E[Preserve recent exact suffix]
-  E --> A
+  A[Stable prefix] --> B[Cache-friendly]
+  C[每輪重排 / 重寫] --> D[Cache miss 機率增加]
 ```
 
-## Context pollution
+所以 production context builder 通常追求：
+
+1. Stable content 放前面。
+2. 新 event 往尾端 append。
+3. 不要無理由重寫舊內容。
+4. Tool schema 排序 deterministic。
+5. 真正需要時才 compaction。
+
+## Context 會一直長，怎麼辦？
+
+Agent 每讀一個檔案、跑一個命令、得到一段 log，history 都可能變長。
+
+Eventually：
+
+```mermaid
+flowchart LR
+  S[Small Context] --> G[Growing History]
+  G --> N[Near Context Limit]
+  N --> C[Compaction]
+  C --> R[Reduced Durable State]
+  R --> G
+```
+
+這就是 compaction 出現的原因。
+
+## Compaction 不是「聊天摘要」
+
+好的 compaction 不是把歷史改寫成一篇漂亮文章。
+
+它要保留的是：
+
+> **未來做正確決策還需要哪些狀態？**
+
+例如：
+
+- User 的真正目標；
+- 不可違反的 constraints；
+- 已驗證的假設；
+- 已排除的方向；
+- 已修改哪些檔案；
+- 尚未完成的工作；
+- 重要 tool identifier；
+- 不能遺失的授權脈絡。
+
+```mermaid
+flowchart TD
+  H[Old History] --> S{哪些資訊未來還需要？}
+  S -->|可重新取得| DROP[可丟棄 / 需要時再讀]
+  S -->|不可輕易重建| KEEP[保留 Durable Facts]
+  KEEP --> C[Compact State]
+  C --> R[Recent Exact Events]
+```
+
+## 「可以重新取得」和「必須記住」要分開
+
+這是很實用的 context budget 原則。
+
+### 可以重新取得
+
+例如：
+
+- repository 原始碼；
+- package.json；
+- 某個公開文件。
+
+需要時可以再讀。
+
+### 不容易重新取得
+
+例如：
+
+- User 剛剛新增的限制；
+- 某次 approval 的脈絡；
+- tool 回傳的 opaque ID；
+- 已經驗證過的複雜推論結果。
+
+這些更值得留在 durable state。
+
+## Context Pollution：資訊太多也會讓 Agent 變差
 
 常見污染來源：
 
-- 工具一次回傳數萬行 log。
-- 搜尋把大量不相關檔案全文塞進模型。
-- Skill 一開始就把所有 reference 全載入。
-- 每輪重複注入相同 repository description。
-- 無限制保留 verbose reasoning/tool debug output。
+```mermaid
+flowchart TB
+  P[Context Pollution]
+  P --> L[巨大 Logs]
+  P --> F[大量不相關 Files]
+  P --> S[所有 Skills 一次載入]
+  P --> R[重複 Repo Description]
+  P --> D[Verbose Debug / Reasoning]
+```
 
-這也是 Skills 採 **progressive disclosure** 的原因：初始 context 只放 name + description；需要時才載入完整 `SKILL.md` 與 references。
+### 例子：10 MB Log
 
-## 實務設計原則
+最差做法：
 
-### 小而穩定的 default context
+```text
+把整份 log 原封不動送進 Model
+```
 
-預設 prompt 應該只包含每一輪都真的需要的資訊。
+較好的 Harness 會：
 
-### Context 由事件增長，而不是由「重新描述狀態」增長
+- 截斷；
+- 摘取 error vicinity；
+- 保存 locator；
+- 讓 Model 需要時再查。
 
-能保存結構化 item，就不要每次重新產生一段自然語言狀態。
+### 例子：Skills
 
-### Tool output 必須可截斷
+如果有 30 個 Skills，不代表一開始就把 30 份 `SKILL.md` 全部放進 context。
 
-Harness 應知道 stdout 太長怎麼處理；最差的策略是把 10 MB log 原封不動交給模型。
+更好的策略是 progressive disclosure：
 
-### 「記住」與「可以重新取得」分開
+```mermaid
+flowchart LR
+  I[Skill Inventory\nName + Description] --> R{Relevant?}
+  R -->|No| X[不載入全文]
+  R -->|Yes| S[Load SKILL.md]
+  S --> D[需要時再讀 references]
+```
 
-Repository 原始碼可以再次 read；使用者剛剛批准的特殊動作或某次 tool 的 opaque identifier 可能不能。Context budget 應優先留不可重建狀態。
+## Context Builder 真正要最佳化什麼？
+
+不是只有 token 數量。
+
+好的 Context Builder 同時追求：
+
+| 目標 | 意義 |
+|---|---|
+| Relevance | Model 看到的是現在真的有用的資訊 |
+| Stability | Stable prefix 不無故改變 |
+| Ordering | 重要資訊順序 deterministic |
+| Budget | 不超出合理 context 成本 |
+| Recoverability | 可重建的資訊不用永久佔位 |
+| Safety | Secret / sensitive data 不亂進 context |
+
+## 常見誤解
+
+### 誤解 1：Context 越大越好
+
+不是。無關資訊也會增加成本與干擾。
+
+### 誤解 2：Model 會永久記得前一輪
+
+不是。Harness 必須把必要 history / state 帶進下一輪。
+
+### 誤解 3：Compaction 就是摘要整段聊天
+
+不是。它是 durable state compression。
+
+### 誤解 4：Caching 只是 Model Provider 的事
+
+不是。Harness 如何排列 context，會直接影響 cache 是否容易命中。
+
+## 本章只要記住
+
+1. **Context 是 Model 此刻能看到的工作桌。**
+2. **Harness 決定什麼資訊要放上工作桌。**
+3. **Stable prefix + append-only events 有利於 caching。**
+4. **Context 太長時要 compact，但要保存未來決策需要的狀態。**
+5. **資訊不是越多越好，relevance 比 volume 更重要。**
+
+下一章會把 history 裡的基本資料模型拆成 [Thread、Turn、Item](./thread-turn-item.md)。
 
 ## 延伸閱讀
 
