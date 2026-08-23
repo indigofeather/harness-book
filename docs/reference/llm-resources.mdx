@@ -1,0 +1,52 @@
+---
+title: AI / LLM 資源
+---
+
+# AI / LLM 資源
+
+本站提供專門給大型語言模型使用的純文字與 Markdown 版本。
+
+## 全站 LLM 檔案
+
+`llms.txt` 是教材索引與 Sidebar reading order；`llms-full.txt` 則包含依 Sidebar 順序合併的完整教材正文。
+
+<div style={{display: 'flex', gap: '0.75rem', flexWrap: 'wrap', margin: '1rem 0 1.5rem'}}>
+  <button
+    type="button"
+    className="button button--primary"
+    onClick={() => window.open('/llms.txt', '_blank', 'noopener,noreferrer')}>
+    開啟 llms.txt
+  </button>
+  <button
+    type="button"
+    className="button button--secondary"
+    onClick={() => window.open('/llms-full.txt', '_blank', 'noopener,noreferrer')}>
+    開啟 llms-full.txt
+  </button>
+</div>
+
+這兩個檔案由 `docusaurus-plugin-llms` 在 production build 的 `postBuild` 階段產生，因此一般 `docusaurus start` 開發伺服器不一定會存在這兩個輸出；請以 `npm run build` 後的產物或正式部署站為準。
+
+## 單頁 Markdown
+
+每篇教材頁也會輸出對應的純 Markdown 版本，例如：
+
+```text
+/docs/intro.md
+/docs/architecture/system-map.md
+/docs/deepseek/overview.md
+/docs/comparison/codex-vs-deepseek.md
+```
+
+文件頁上方的 **提供給 AI** 選單可以直接：
+
+- 複製本頁 Markdown；
+- 查看純 Markdown；
+- 在 ChatGPT 開啟；
+- 在 Claude 開啟；
+- 在 Perplexity 開啟；
+- 在 Gemini 開啟。
+
+## Sidebar 與 LLM reading order
+
+`llms.txt` 與 `llms-full.txt` 的文件順序直接取自本站 Sidebar，因此新增、刪除或調整教材章節後，下一次 production build 會同步更新 LLM reading order。

@@ -217,12 +217,16 @@ const config: Config = {
           position: 'right',
           items: [
             {
+              label: 'AI / LLM 資源說明',
+              to: '/docs/reference/llm-resources',
+            },
+            {
               label: 'llms.txt｜教材索引',
-              href: '/llms.txt',
+              href: `${siteUrl}/llms.txt`,
             },
             {
               label: 'llms-full.txt｜完整教材',
-              href: '/llms-full.txt',
+              href: `${siteUrl}/llms-full.txt`,
             },
           ],
         },
@@ -247,8 +251,9 @@ const config: Config = {
         {
           title: 'AI / LLM',
           items: [
-            {label: 'llms.txt｜教材索引', href: '/llms.txt'},
-            {label: 'llms-full.txt｜完整教材', href: '/llms-full.txt'},
+            {label: 'AI / LLM 資源說明', to: '/docs/reference/llm-resources'},
+            {label: 'llms.txt｜教材索引', href: `${siteUrl}/llms.txt`},
+            {label: 'llms-full.txt｜完整教材', href: `${siteUrl}/llms-full.txt`},
           ],
         },
         {

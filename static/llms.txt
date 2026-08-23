@@ -1,4 +1,0 @@
-# Agent Harness 深度指南
-
-此檔案為 build-time placeholder，用於讓 Docusaurus 在 broken-link check 階段辨識 `/llms.txt` 路徑。
-Production build 的 postBuild 階段會由 `docusaurus-plugin-llms` 產生正式內容並覆寫此檔案。
