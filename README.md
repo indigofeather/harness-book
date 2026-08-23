@@ -38,19 +38,15 @@ npm run typecheck
 npm run build
 ```
 
-## GitHub Pages
+## Deployment
 
-Repository 已包含 `.github/workflows/deploy-pages.yml`。建立 GitHub repository 後：
+本專案以 Vercel 直接部署。Docusaurus 使用根路徑 `/`，站點 URL 會優先讀取 Vercel 提供的 `VERCEL_PROJECT_PRODUCTION_URL`，preview deployment 則可使用 `VERCEL_URL`。
 
-1. Repository Settings → Pages。
-2. Source 選 GitHub Actions。
-3. Push 到 `main` 後 workflow 會 build/deploy。
-
-Docusaurus 已設定：
+Vercel 建議設定：
 
 ```text
-url: https://indigofeather.github.io
-baseUrl: /codex-harness/
+Build Command: npm run build
+Output Directory: build
 ```
 
 ## 主要來源
