@@ -103,7 +103,7 @@ Plugin → 把一組能力以可分發方式組合
 
 如果一段內容符合任一條：
 
-- 只有 <20% tasks 用到；
+- 只有不到 20% 的 tasks 用到；
 - 超過數十行 SOP；
 - 有專用 references/scripts；
 - 有明確 trigger；
