@@ -165,21 +165,18 @@
   background: var(--ifm-background-color);
 }
 
-.zoomCanvas {
-  min-width: 100%;
-  margin: 0 auto;
-  transition: width 160ms ease;
-}
-
 .modalDiagram {
   width: 100%;
   min-width: 100%;
 }
 
 .modalDiagram > svg {
-  width: 100%;
+  display: block;
+  min-width: 75%;
   max-width: none;
   height: auto;
+  margin: 0;
+  transition: width 160ms ease;
 }
 
 @media (max-width: 700px) {
@@ -219,7 +216,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zoomCanvas {
+  .modalDiagram > svg {
     transition: none;
   }
 }
