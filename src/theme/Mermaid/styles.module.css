@@ -48,7 +48,7 @@
   min-height: 2.2rem;
   padding: 0.35rem 0.65rem;
   background: color-mix(in srgb, var(--ifm-background-surface-color) 92%, transparent);
-  box-shadow: 0 2px 10px rgba(16, 36, 30, 0.08);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(8px);
   font-size: 0.84rem;
   font-weight: 700;
@@ -78,7 +78,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: rgba(8, 14, 12, 0.72);
+  background: rgba(3, 7, 18, 0.74);
   backdrop-filter: blur(8px);
 }
 

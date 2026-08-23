@@ -1,85 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400..800&display=swap');
+
 :root {
-  --ifm-color-primary: #2f6f62;
-  --ifm-color-primary-dark: #2a6458;
-  --ifm-color-primary-darker: #275e53;
-  --ifm-color-primary-darkest: #204d44;
-  --ifm-color-primary-light: #347a6c;
-  --ifm-color-primary-lighter: #378071;
-  --ifm-color-primary-lightest: #438f80;
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4ed8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93c5fd;
 
-  --ifm-background-color: #f7f6f2;
-  --ifm-background-surface-color: #fffdfa;
-  --ifm-card-background-color: #fffdfa;
-  --ifm-navbar-background-color: rgba(250, 249, 245, 0.96);
-  --ifm-footer-background-color: #1d2925;
+  --ifm-background-color: #f8fafc;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-card-background-color: #ffffff;
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.96);
+  --ifm-footer-background-color: #111827;
 
-  --ifm-font-color-base: #29332f;
-  --ifm-font-color-base-inverse: #f4f8f6;
-  --ifm-heading-color: #17211d;
-  --ifm-color-content-secondary: #64716b;
-  --ifm-link-color: #28675b;
-  --ifm-code-background: #eceee9;
-  --ifm-toc-border-color: #d9ded9;
-  --ifm-hr-background-color: #d9ded9;
+  --ifm-font-color-base: #334155;
+  --ifm-font-color-base-inverse: #f8fafc;
+  --ifm-heading-color: #0f172a;
+  --ifm-color-content-secondary: #64748b;
+  --ifm-link-color: #1d4ed8;
+  --ifm-code-background: #eef2f7;
+  --ifm-toc-border-color: #e2e8f0;
+  --ifm-hr-background-color: #e2e8f0;
 
-  --ifm-color-emphasis-100: #f0f1ed;
-  --ifm-color-emphasis-200: #e4e7e2;
-  --ifm-color-emphasis-300: #d5dbd6;
-  --ifm-color-emphasis-500: #96a19b;
-  --ifm-color-emphasis-600: #7b8881;
-  --ifm-color-emphasis-700: #606d67;
-  --ifm-color-emphasis-800: #3f4b46;
-  --ifm-color-emphasis-900: #25302b;
+  --ifm-color-emphasis-100: #f1f5f9;
+  --ifm-color-emphasis-200: #e2e8f0;
+  --ifm-color-emphasis-300: #cbd5e1;
+  --ifm-color-emphasis-500: #94a3b8;
+  --ifm-color-emphasis-600: #64748b;
+  --ifm-color-emphasis-700: #475569;
+  --ifm-color-emphasis-800: #334155;
+  --ifm-color-emphasis-900: #1e293b;
 
   --ifm-font-family-base:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --ifm-heading-font-weight: 720;
   --ifm-line-height-base: 1.72;
   --ifm-code-font-size: 92%;
-  --docusaurus-highlighted-code-line-bg: rgba(47, 111, 98, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(37, 99, 235, 0.1);
 
-  --reading-border: #d7ddd8;
-  --reading-soft-bg: #f0f2ee;
-  --reading-shadow: 0 8px 28px rgba(35, 52, 45, 0.06);
+  --reading-border: #dbe3ec;
+  --reading-soft-bg: #f1f5f9;
+  --reading-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
 }
 
 [data-theme='dark'] {
-  --ifm-color-primary: #7cc7b0;
-  --ifm-color-primary-dark: #69bea5;
-  --ifm-color-primary-darker: #60b9a0;
-  --ifm-color-primary-darkest: #45a58a;
-  --ifm-color-primary-light: #8fceb9;
-  --ifm-color-primary-lighter: #99d2bf;
-  --ifm-color-primary-lightest: #badfd2;
+  --ifm-color-primary: #93c5fd;
+  --ifm-color-primary-dark: #7cb8fc;
+  --ifm-color-primary-darker: #70b1fc;
+  --ifm-color-primary-darkest: #4798fb;
+  --ifm-color-primary-light: #aad2fe;
+  --ifm-color-primary-lighter: #b6d8fe;
+  --ifm-color-primary-lightest: #deedff;
 
-  --ifm-background-color: #151a18;
-  --ifm-background-surface-color: #1b211f;
-  --ifm-card-background-color: #1d2421;
-  --ifm-navbar-background-color: rgba(22, 28, 26, 0.96);
-  --ifm-footer-background-color: #101513;
+  --ifm-background-color: #111827;
+  --ifm-background-surface-color: #182235;
+  --ifm-card-background-color: #1a2538;
+  --ifm-navbar-background-color: rgba(17, 24, 39, 0.96);
+  --ifm-footer-background-color: #0b1120;
 
-  --ifm-font-color-base: #d8e0dc;
-  --ifm-font-color-base-inverse: #18201d;
-  --ifm-heading-color: #eef3f0;
-  --ifm-color-content-secondary: #a8b5af;
-  --ifm-link-color: #89ceb9;
-  --ifm-code-background: #252d2a;
-  --ifm-toc-border-color: #35413c;
-  --ifm-hr-background-color: #35413c;
+  --ifm-font-color-base: #d8dee9;
+  --ifm-font-color-base-inverse: #111827;
+  --ifm-heading-color: #f1f5f9;
+  --ifm-color-content-secondary: #a8b3c4;
+  --ifm-link-color: #9ac0ff;
+  --ifm-code-background: #1e293b;
+  --ifm-toc-border-color: #334155;
+  --ifm-hr-background-color: #334155;
 
-  --ifm-color-emphasis-100: #1b211f;
-  --ifm-color-emphasis-200: #252d2a;
-  --ifm-color-emphasis-300: #35413c;
-  --ifm-color-emphasis-500: #71817a;
-  --ifm-color-emphasis-600: #8d9b95;
-  --ifm-color-emphasis-700: #aebbb5;
-  --ifm-color-emphasis-800: #d0d9d5;
-  --ifm-color-emphasis-900: #eef4f1;
+  --ifm-color-emphasis-100: #182235;
+  --ifm-color-emphasis-200: #1e293b;
+  --ifm-color-emphasis-300: #334155;
+  --ifm-color-emphasis-500: #64748b;
+  --ifm-color-emphasis-600: #94a3b8;
+  --ifm-color-emphasis-700: #b0bdce;
+  --ifm-color-emphasis-800: #d6deeb;
+  --ifm-color-emphasis-900: #f1f5f9;
 
-  --docusaurus-highlighted-code-line-bg: rgba(124, 199, 176, 0.12);
-  --reading-border: #35413c;
-  --reading-soft-bg: #202825;
+  --docusaurus-highlighted-code-line-bg: rgba(147, 197, 253, 0.12);
+  --reading-border: #334155;
+  --reading-soft-bg: #1c2738;
   --reading-shadow: none;
 }
 
@@ -114,12 +116,12 @@ body {
 
 .hero--primary {
   background:
-    radial-gradient(circle at 18% 20%, rgba(77, 137, 119, 0.4) 0, transparent 34%),
-    linear-gradient(135deg, #173c34 0%, #102f29 48%, #0c2621 100%);
+    radial-gradient(circle at 18% 20%, rgba(76, 124, 184, 0.4) 0, transparent 34%),
+    linear-gradient(135deg, #1e3a5f 0%, #172b46 48%, #111f33 100%);
 }
 
 .hero--primary .hero__title {
-  color: #f7fbf8 !important;
+  color: #f8fafc !important;
 }
 
 .hero__title {

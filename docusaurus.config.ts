@@ -89,7 +89,7 @@ const config: Config = {
   url: siteUrl,
   baseUrl: '/',
   organizationName: 'indigofeather',
-  projectName: 'codex-harness',
+  projectName: 'harness-book',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
@@ -180,7 +180,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/indigofeather/codex-harness/tree/main/',
+          editUrl: 'https://github.com/indigofeather/harness-book/tree/main/',
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
         },
@@ -232,7 +232,7 @@ const config: Config = {
         },
         {href: 'https://github.com/openai/codex', label: 'openai/codex', position: 'right'},
         {href: 'https://github.com/deepseek-ai/deepseek-harness', label: 'deepseek-harness', position: 'right'},
-        {href: 'https://github.com/indigofeather/codex-harness', label: 'GitHub', position: 'right'},
+        {href: 'https://github.com/indigofeather/harness-book', label: 'GitHub', position: 'right'},
       ],
     },
     footer: {
@@ -266,7 +266,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `© ${new Date().getFullYear()} Agent Harness 深度指南。非 OpenAI 或 DeepSeek 官方教材。`,
+      copyright: `© ${new Date().getFullYear()} Agent Harness 深度指南。非 OpenAI 或 DeepSeek 官方教材。製作者：<a href="mailto:indigofeather@gmail.com">Lance He</a>`,
     },
     prism: {
       theme: prismThemes.github,
