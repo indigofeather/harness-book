@@ -142,6 +142,34 @@ const config: Config = {
           'gemini',
         ],
         markdownUrl: true,
+        placement: 'article',
+        labels: {
+          button: {label: '提供給 AI'},
+          copy: {
+            title: '複製 Markdown',
+            description: '將本頁原始內容以 Markdown 複製到剪貼簿',
+          },
+          view: {
+            title: '查看 Markdown',
+            description: '在新分頁開啟本頁的純 Markdown 版本',
+          },
+          chatgpt: {
+            title: '在 ChatGPT 開啟',
+            description: '將本頁 Markdown 作為 ChatGPT 的參考內容',
+          },
+          claude: {
+            title: '在 Claude 開啟',
+            description: '將本頁 Markdown 作為 Claude 的參考內容',
+          },
+          perplexity: {
+            title: '在 Perplexity 開啟',
+            description: '將本頁 Markdown 作為 Perplexity 的參考內容',
+          },
+          gemini: {
+            title: '在 Gemini 開啟',
+            description: '將本頁 Markdown 作為 Gemini 的參考內容',
+          },
+        },
       },
     ],
   ],
@@ -183,6 +211,21 @@ const config: Config = {
         {to: '/docs/deepseek/overview', label: 'DeepSeek Harness', position: 'left'},
         {to: '/docs/comparison/codex-vs-deepseek', label: 'Codex vs DeepSeek', position: 'left'},
         {to: '/docs/reference/source-reading', label: '原始碼導讀', position: 'left'},
+        {
+          type: 'dropdown',
+          label: 'AI / LLM',
+          position: 'right',
+          items: [
+            {
+              label: 'llms.txt｜教材索引',
+              href: '/llms.txt',
+            },
+            {
+              label: 'llms-full.txt｜完整教材',
+              href: '/llms-full.txt',
+            },
+          ],
+        },
         {href: 'https://github.com/openai/codex', label: 'openai/codex', position: 'right'},
         {href: 'https://github.com/deepseek-ai/deepseek-harness', label: 'deepseek-harness', position: 'right'},
         {href: 'https://github.com/indigofeather/codex-harness', label: 'GitHub', position: 'right'},
@@ -199,6 +242,13 @@ const config: Config = {
             {label: 'DeepSeek Harness', to: '/docs/deepseek/overview'},
             {label: '兩者比較', to: '/docs/comparison/codex-vs-deepseek'},
             {label: '雙 Harness 原始碼導讀', to: '/docs/reference/source-reading'},
+          ],
+        },
+        {
+          title: 'AI / LLM',
+          items: [
+            {label: 'llms.txt｜教材索引', href: '/llms.txt'},
+            {label: 'llms-full.txt｜完整教材', href: '/llms-full.txt'},
           ],
         },
         {
