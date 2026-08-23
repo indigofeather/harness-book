@@ -64,7 +64,23 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '七、實戰 Labs',
+      type: 'category', label: '七、DeepSeek Harness：另一種設計哲學', collapsed: false,
+      items: [
+        'deepseek/overview',
+        'deepseek/architecture',
+        'deepseek/session-and-events',
+        'deepseek/code-mode-and-plugins',
+      ],
+    },
+    {
+      type: 'category', label: '八、Codex vs DeepSeek：比較與選型', collapsed: false,
+      items: [
+        'comparison/codex-vs-deepseek',
+        'comparison/selection-guide',
+      ],
+    },
+    {
+      type: 'category', label: '九、實戰 Labs',
       items: [
         'labs/trace-a-turn',
         'labs/guardrails',
@@ -72,7 +88,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '八、參考資料',
+      type: 'category', label: '十、參考資料',
       items: [
         'reference/glossary',
         'reference/source-map',
