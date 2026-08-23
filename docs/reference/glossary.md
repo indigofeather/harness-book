@@ -1,98 +1,291 @@
 ---
-title: Glossary
+title: Glossary：名詞速查
 ---
 
-# Glossary
+# Glossary：名詞速查
+
+遇到陌生名詞時，不需要先背正式定義。先用這張分類圖判斷它大概在哪一層。
+
+```mermaid
+flowchart TB
+  A[Agent System Terms]
+  A --> B[Thinking\nAgent / Model / Context]
+  A --> C[Runtime\nHarness / Loop / Thread / Turn / Item]
+  A --> D[Capability\nTool / MCP / Skill / Plugin / Subagent]
+  A --> E[Safety\nSandbox / Approval / Permission / Rule]
+  A --> F[Integration\nApp Server / JSONL / Steering / Fork]
+```
 
 ## Agent
-能根據目標反覆推理、呼叫工具、觀察結果再採取下一步的系統。模型只是 agent 的一部分。
+
+**一句話：** 會根據目標反覆「想 → 做 → 看結果 → 再想」的系統。
+
+Model 只是 Agent 的一部分；Agent 還需要 Harness、Tools、Environment、Policy、State。
 
 ## Agent Loop
-Model → action/tool → observation → model 的反覆控制迴路，直到 turn 完成。
+
+**一句話：** Agent 的主循環。
+
+```text
+Model → Action / Tool → Observation → Model → ... → 完成
+```
+
+不要和「一次 Model API Call」混淆；一個 Turn 可以跑很多輪 Agent Loop。
 
 ## Harness
-協調 model、context、tools、execution、policy、state 與 client lifecycle 的 runtime。
+
+**一句話：** 把 Model 的判斷連到真實世界的控制中心。
+
+負責協調：
+
+```text
+Context + Tools + Execution + Policy + State + Events
+```
+
+## Model
+
+**一句話：** Agent 裡負責理解、推理與選擇下一步的部分。
+
+Model 可以提出 Tool Call，但 Tool 是否真的執行，由 Harness / Policy / Environment 決定。
 
 ## Context
-某次 model inference 真正收到的 instructions、tools metadata、history、environment、user input 等總和。
+
+**一句話：** Model 這一次 inference 真正看得到的「工作桌」。
+
+可能包含：
+
+- instructions；
+- tool metadata；
+- history；
+- environment；
+- current user input。
 
 ## Context Window
-模型單次可處理 token 的容量上限。
+
+**一句話：** Model 一次最多能處理多少 token 的容量上限。
+
+Context Window 有限，所以 Harness 必須做 selection、truncation、compaction。
 
 ## Compaction
-將較舊 history 壓縮成後續推理所需的 durable state，以控制 context budget。
+
+**一句話：** Context 太長時，把舊歷史壓縮成「未來還需要的狀態」。
+
+它不是單純把聊天寫成漂亮摘要，而是 durable state compression。
 
 ## Prompt Caching
-當後續 request 保留相同前綴時，provider 可重用先前 prompt 計算的機制。Harness 透過 stable prefix / append-only growth 提高命中機會。
+
+**一句話：** 後續 request 的前綴相同時，Provider 有機會重用先前計算。
+
+Harness 透過：
+
+- stable prefix；
+- deterministic ordering；
+- append-only growth
+
+提高命中機會。
 
 ## Tool
-模型可提出呼叫的結構化能力，例如 shell、file edit、web、MCP tool。
+
+**一句話：** Model 可以要求 Harness 執行的一種能力。
+
+例如：
+
+- shell；
+- read file；
+- apply patch；
+- search；
+- MCP tool。
+
+Tool Call 是「行動提案」，不代表行動已經成功。
 
 ## Tool Schema
-描述 tool name、用途、arguments/result 結構的 machine-readable contract。
+
+**一句話：** 告訴 Model「這個 Tool 怎麼用」的 machine-readable contract。
+
+通常描述：
+
+```text
+name + purpose + arguments + result shape
+```
 
 ## MCP
-Model Context Protocol。讓 agent host 以標準方式連接外部 tools/resources/server。
+
+**全名：** Model Context Protocol。
+
+**一句話：** 讓 Agent Host 以標準方式連接外部 Tool / Resource / Server。
+
+例如把 GitHub、Slack、Database、Observability 服務變成 Agent 能使用的 capability。
 
 ## Skill
-按需載入的專門工作流程/知識包。核心特色是 progressive disclosure。
+
+**一句話：** 只有特定情境才載入的專門 SOP / 知識包。
+
+核心概念是 **progressive disclosure**：先暴露 name + description，需要時才載入完整內容。
 
 ## Plugin
-可分發的一組 Codex capability bundle；具體能力與格式依版本演進。
+
+**一句話：** 可以分發的一組 Codex capability bundle。
+
+可包含多種能力；具體格式依 Codex 版本演進。
 
 ## Hook
-在 session/tool/permission/compaction 等 lifecycle event 執行 deterministic handler 的擴充點。
+
+**一句話：** 在特定 lifecycle event 發生時，自動執行 deterministic handler。
+
+例如 Tool 執行後自動跑 validator。
 
 ## AGENTS.md
-Repository-scoped agent instructions，可依 global/project/nested scope 載入與覆寫。
+
+**一句話：** Repository / directory scope 的 Agent 長期工作規則。
+
+適合放「只要在這個 code scope 工作就應該知道」的 invariant。
+
+不要和 Permission 混淆：AGENTS.md 主要是 instruction，不是強制安全邊界。
 
 ## Sandbox
-在 execution layer 限制 filesystem/process/network 等技術能力的隔離機制。
+
+**一句話：** 限制 Agent 在 execution layer 技術上碰得到什麼。
+
+可以想成「圍牆」。
+
+可能限制：
+
+- filesystem；
+- process；
+- network。
 
 ## Approval
-當 action 需要額外授權時，交由 user/reviewer 決策的流程。
+
+**一句話：** 某個特定 Action 是否要由 User / Reviewer 放行。
+
+可以想成「門禁決策」。
+
+不要和 Sandbox 混淆：
+
+```text
+Sandbox  → 能不能做
+Approval → 這次要不要批准
+```
 
 ## Permission Profile
-一組命名化 capability/policy 設定，用來選擇 thread/turn 的權限組合。
+
+**一句話：** 一組命名好的 capability / policy 組合。
+
+用來選擇某個 Thread / Turn 應使用哪一套權限設定。
 
 ## Rule
-針對特定 action/command pattern 做 allow/prompt/forbidden 等 deterministic policy。
+
+**一句話：** 針對特定 Action / Command Pattern 做 deterministic policy。
+
+例如：
+
+```text
+git status       → allow
+git push         → prompt
+git push --force → forbidden
+```
 
 ## Thread
-可跨多個 turn 延續的 agent conversation/session。
+
+**一句話：** 一整段可以延續的 Agent 工作對話。
+
+比喻：一本工作筆記。
 
 ## Turn
-一次 user intent 到 agent completion/interruption 的工作單位。
+
+**一句話：** 一次 User Request 到 Agent 完成 / 失敗 / 中斷的工作單位。
+
+比喻：工作筆記中的一次任務。
 
 ## Item
-Turn 中的細粒度內容/事件，例如 message、reasoning、shell command、file edit、tool result。
+
+**一句話：** Turn 裡的一個細粒度事件。
+
+例如：
+
+- message；
+- reasoning；
+- shell command；
+- file edit；
+- tool result。
+
+比喻：一次任務中的每一筆紀錄。
 
 ## App Server
-Codex 的完整 harness integration surface，以 JSON-RPC-lite 的雙向 protocol 讓 rich clients 操作 thread/turn/items/config/auth 等。
 
-## JSON-RPC-lite
-App Server 使用的 request/response/notification pattern，語意類似 JSON-RPC 2.0，但 wire 格式省略標準 `jsonrpc` header。
+**一句話：** 讓 IDE、自製 App 等 Client 可以驅動完整 Codex Harness 的 integration surface。
+
+它提供 Thread / Turn / Item、Config、Auth、Approval、Events 等雙向 protocol 能力。
+
+## JSON-RPC-like Protocol
+
+**一句話：** App Server 使用的 request / response / notification 溝通模式。
+
+語意接近 JSON-RPC 2.0，但實際 wire contract 以當前 Codex App Server 文件為準。
 
 ## JSONL
-一行一個 JSON object，適合 stdio streaming protocol 與 `codex exec --json`。
+
+**一句話：** 一行一個 JSON Object 的串流格式。
+
+常用於 stdio streaming 與 `codex exec --json` 類輸出。
 
 ## Steering
-在 active turn 執行中補充/調整 user input 的能力。
+
+**一句話：** Turn 還在執行時，User 再補充新的要求或限制。
+
+例如 Agent 工作到一半，你說：
+
+```text
+先不要改 DB schema。
+```
 
 ## Fork
-從既有 thread/history boundary 建立新 thread 分支。
+
+**一句話：** 從既有 Thread 的某個歷史邊界分出新的 Thread。
+
+概念接近 Git branch：保留共同歷史，之後走不同路線。
 
 ## Ephemeral Thread
-不保存 durable session history 的暫時 thread。
+
+**一句話：** 不保存成 durable history 的暫時 Thread。
+
+適合一次性 task、CI、subtask 或某些敏感場景。
 
 ## Worktree
-Git 讓同一 repository 同時存在多個獨立 working directories/branches 的功能，適合平行 agent writes。
+
+**一句話：** Git 讓同一 Repository 同時存在多個獨立 working directory 的功能。
+
+對多 Agent 平行修改很有用，因為不同 Agent 不一定要搶同一個工作目錄。
 
 ## Subagent
-由 root agent 派生、負責特定子任務的 agent runtime/thread。
+
+**一句話：** Root Agent 派生出的專門子 Agent。
+
+適合相對獨立、可以並行的 work packet。
 
 ## Backpressure
-當 event producer 速度高於 consumer 時，系統用 bounded queue、拒絕/重試等方式避免記憶體無限制成長。
+
+**一句話：** Producer 產生事件太快、Consumer 吃不完時，系統如何避免無限制堆積。
+
+常見手段：
+
+- bounded queue；
+- reject；
+- retry；
+- flow control。
 
 ## Idempotency
-相同 operation 因 retry 重複執行時，不造成重複副作用的性質/設計。
+
+**一句話：** 同一個 operation 因 retry 被執行多次時，不會造成重複副作用。
+
+例如「建立一筆付款」如果 retry 兩次卻真的扣款兩次，就是缺乏正確 idempotency design。
+
+## 最容易混淆的五組名詞
+
+| 不要混淆 | 差異 |
+|---|---|
+| Model vs Agent | Model 是推理元件；Agent 是完整工作系統 |
+| Model vs Harness | Model 決策；Harness 協調與執行 |
+| Thread vs Turn | Thread 是整段工作；Turn 是一次任務 |
+| Sandbox vs Approval | Sandbox 是能力邊界；Approval 是本次放行決策 |
+| Skill vs MCP | Skill 教「怎麼做」；MCP 增加「能做什麼」 |
