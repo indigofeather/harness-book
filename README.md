@@ -4,6 +4,14 @@
 
 > 本專案不是 OpenAI 或 DeepSeek 官方教材。內容以官方文件、工程文章，以及 `openai/codex`、`deepseek-ai/deepseek-harness` 開源原始碼交叉核對；最後系統性核對日期為 2026-08-23。
 
+## 網站能力
+
+- 繁體中文單語教材，Sidebar 同時作為網站與 LLM 輸出的 canonical reading order
+- 支援明暗模式，使用低疲勞的 slate / blue 配色與 Noto Sans TC
+- Mermaid 圖表可開啟獨立檢視、縮放至 75%–300%，並支援水平與垂直捲動
+- 每頁可複製或查看原始 Markdown，也可直接帶入 ChatGPT、Claude、Perplexity 或 Gemini
+- Build 會產生 `llms.txt`、`llms-full.txt` 與保留目錄結構的逐頁 Markdown
+
 ## 教材原則
 
 兩套 Harness 採 **對稱覆蓋**，避免把其中一套當主角、另一套只當附錄。核心問題都會盡量從兩邊回答：
@@ -75,18 +83,18 @@ Production correctness 怎麼驗證？
 
 ## Local development
 
-需要 Node.js 20+。
+需要 Node.js 20+ 與 Bun。
 
 ```bash
-npm install
-npm start
+bun install
+bun run start
 ```
 
-Build：
+檢查與 Build：
 
 ```bash
-npm run typecheck
-npm run build
+bun run typecheck
+bun run build
 ```
 
 ## Deployment
@@ -96,7 +104,8 @@ npm run build
 Vercel 建議設定：
 
 ```text
-Build Command: npm run build
+Install Command: bun install
+Build Command: bun run build
 Output Directory: build
 ```
 
@@ -121,3 +130,5 @@ Output Directory: build
 ## License / attribution
 
 教材為整理與解說性內容；引用之外部產品名稱、原始碼與文件各自依其原始授權與條款。`openai/codex` repository 為 Apache-2.0；`deepseek-ai/deepseek-harness` 為 MIT（均請以 upstream 當前 LICENSE 為準）。
+
+製作者：[Lance He](mailto:indigofeather@gmail.com)
