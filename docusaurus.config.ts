@@ -2,6 +2,9 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+const siteUrl = vercelHost ? `https://${vercelHost}` : 'http://localhost:3000';
+
 const config: Config = {
   title: 'Codex Harness 深度指南',
   tagline: '從 agent loop 到 production：理解、使用並延伸 OpenAI Codex harness',
@@ -11,11 +14,10 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://indigofeather.github.io',
-  baseUrl: '/codex-harness/',
+  url: siteUrl,
+  baseUrl: '/',
   organizationName: 'indigofeather',
   projectName: 'codex-harness',
-  deploymentBranch: 'gh-pages',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
