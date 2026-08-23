@@ -24,15 +24,15 @@ export default function Home() {
   return (
     <Layout title="Codex Harness 深度指南" description="從零理解 Codex Harness：Model、Agent Loop、Tools、安全邊界到 production integration">
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
-        <div className="container">
+        <div className={clsx('container', styles.heroContent)}>
           <Heading as="h1" className="hero__title">Codex Harness 深度指南</Heading>
           <p className="hero__subtitle">
             從「Codex 到底怎麼工作」開始，一路理解 Agent Loop、Context、Tools、Sandbox、App Server 與 production harness。
           </p>
           <p className={styles.heroHint}>不要求先懂 Rust，也不是 CLI 指令表；每個核心概念都先用直覺圖解，再進入工程細節。</p>
           <div className={styles.buttons}>
-            <Link className="button button--secondary button--lg" to="/docs/learning-map">先看學習地圖</Link>
-            <Link className="button button--outline button--secondary button--lg" to="/docs/intro">從導論開始</Link>
+            <Link className={clsx('button', 'button--lg', styles.primaryButton)} to="/docs/learning-map">先看學習地圖</Link>
+            <Link className={clsx('button', 'button--lg', styles.secondaryButton)} to="/docs/intro">從導論開始</Link>
           </div>
         </div>
       </header>
