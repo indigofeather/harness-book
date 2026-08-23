@@ -18,18 +18,34 @@ const ZOOM_STEP = 0.25;
 function Diagram({
   renderResult,
   modal = false,
+  zoom = 1,
 }: {
   renderResult: RenderResult;
   modal?: boolean;
+  zoom?: number;
 }): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const div = ref.current;
-    if (div) {
-      renderResult.bindFunctions?.(div);
+    if (!div) {
+      return;
     }
-  }, [renderResult]);
+
+    renderResult.bindFunctions?.(div);
+
+    const svg = div.querySelector('svg');
+    if (!svg) {
+      return;
+    }
+
+    if (modal) {
+      svg.style.width = `${zoom * 100}%`;
+      svg.style.maxWidth = 'none';
+      svg.style.height = 'auto';
+      svg.style.margin = '0';
+    }
+  }, [renderResult, modal, zoom]);
 
   return (
     <div
@@ -92,7 +108,7 @@ function MermaidRenderResult({renderResult}: {renderResult: RenderResult}): Reac
               <div className={styles.toolbar}>
                 <div>
                   <strong>圖表放大檢視</strong>
-                  <span className={styles.toolbarHint}>可水平與垂直捲動</span>
+                  <span className={styles.toolbarHint}>直接放大 SVG，可水平與垂直捲動</span>
                 </div>
                 <div className={styles.toolbarActions}>
                   <button
@@ -131,11 +147,7 @@ function MermaidRenderResult({renderResult}: {renderResult: RenderResult}): Reac
               </div>
 
               <div className={styles.viewport}>
-                <div
-                  className={styles.zoomCanvas}
-                  style={{width: `${zoom * 100}%`}}>
-                  <Diagram renderResult={renderResult} modal />
-                </div>
+                <Diagram renderResult={renderResult} modal zoom={zoom} />
               </div>
             </div>
           </div>,
