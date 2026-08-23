@@ -1,0 +1,29 @@
+:root {
+  --ifm-color-primary: #235347;
+  --ifm-color-primary-dark: #1f4b40;
+  --ifm-color-primary-darker: #1d473c;
+  --ifm-color-primary-darkest: #183a32;
+  --ifm-color-primary-light: #275b4e;
+  --ifm-color-primary-lighter: #296052;
+  --ifm-color-primary-lightest: #2f6d5d;
+  --ifm-code-font-size: 92%;
+  --docusaurus-highlighted-code-line-bg: rgba(35, 83, 71, 0.1);
+}
+[data-theme='dark'] {
+  --ifm-color-primary: #77d1b3;
+  --ifm-color-primary-dark: #5bc6a2;
+  --ifm-color-primary-darker: #4dc09a;
+  --ifm-color-primary-darkest: #37a983;
+  --ifm-color-primary-light: #93dcc4;
+  --ifm-color-primary-lighter: #a1e1cb;
+  --ifm-color-primary-lightest: #c9efe2;
+  --docusaurus-highlighted-code-line-bg: rgba(119, 209, 179, 0.12);
+}
+.hero--primary {
+  background: radial-gradient(circle at 18% 20%, #326b5d 0, #173d35 38%, #102c27 100%);
+}
+.hero__title { letter-spacing: -0.03em; }
+.hero__subtitle { max-width: 780px; margin-inline: auto; }
+.cardGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.conceptCard { border: 1px solid var(--ifm-color-emphasis-300); border-radius: 12px; padding: 1.1rem; }
+.conceptCard h3 { margin-top: 0; }
