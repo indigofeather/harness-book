@@ -26,7 +26,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '三、安全、權限與信任邊界',
+      type: 'category', label: '三、Codex 安全、權限與信任邊界',
       items: [
         'security/sandbox-and-approvals',
         'security/permissions-rules-network',
@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '四、客製化與擴充',
+      type: 'category', label: '四、Codex 客製化與擴充',
       items: [
         'customization/config',
         'customization/agents-md',
@@ -55,12 +55,11 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '六、把 Harness 用在真實系統',
+      type: 'category', label: '六、Codex 實戰 Labs',
       items: [
-        'applications/workflows',
-        'applications/where-should-behavior-live',
-        'applications/build-your-own-harness',
-        'applications/production-checklist',
+        'labs/trace-a-turn',
+        'labs/guardrails',
+        'labs/embed-app-server',
       ],
     },
     {
@@ -85,11 +84,12 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '九、實戰 Labs',
+      type: 'category', label: '九、把 Harness 用在真實系統',
       items: [
-        'labs/trace-a-turn',
-        'labs/guardrails',
-        'labs/embed-app-server',
+        'applications/workflows',
+        'applications/where-should-behavior-live',
+        'applications/build-your-own-harness',
+        'applications/production-checklist',
       ],
     },
     {
