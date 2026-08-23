@@ -1,9 +1,12 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import type {ThemeConfig as MermaidThemeConfig} from '@docusaurus/theme-mermaid';
 
 const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
 const siteUrl = vercelHost ? `https://${vercelHost}` : 'http://localhost:3000';
+
+type ThemeConfig = Preset.ThemeConfig & MermaidThemeConfig;
 
 const config: Config = {
   title: 'Codex Harness 深度指南',
@@ -56,6 +59,15 @@ const config: Config = {
   ],
 
   themeConfig: {
+    colorMode: {
+      defaultMode: 'light',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
+    mermaid: {
+      theme: {light: 'neutral', dark: 'dark'},
+      options: {},
+    },
     image: 'img/social-card.svg',
     navbar: {
       title: 'Codex Harness',
@@ -94,7 +106,7 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['bash', 'json', 'toml', 'rust', 'typescript', 'python'],
     },
-  } satisfies Preset.ThemeConfig,
+  } satisfies ThemeConfig,
 };
 
 export default config;
