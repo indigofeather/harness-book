@@ -31,8 +31,8 @@ export default function Home() {
           </p>
           <p className={styles.heroHint}>不要求先懂 Rust，也不是 CLI 指令表；每個核心概念都先用直覺圖解，再進入工程細節。</p>
           <div className={styles.buttons}>
-            <Link className={clsx('button', 'button--lg', styles.primaryButton)} to="/docs/learning-map">先看學習地圖</Link>
-            <Link className={clsx('button', 'button--lg', styles.secondaryButton)} to="/docs/intro">從導論開始</Link>
+            <Link className={clsx(styles.ctaButton, styles.primaryButton)} to="/docs/learning-map">先看學習地圖</Link>
+            <Link className={clsx(styles.ctaButton, styles.secondaryButton)} to="/docs/intro">從導論開始</Link>
           </div>
         </div>
       </header>
