@@ -3,8 +3,9 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     'intro',
+    'learning-map',
     {
-      type: 'category', label: '一、基礎心智模型', collapsed: false,
+      type: 'category', label: '一、先理解 Agent 怎麼工作', collapsed: false,
       items: [
         'foundations/what-is-harness',
         'foundations/agent-loop',
@@ -13,7 +14,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '二、Harness 架構', collapsed: false,
+      type: 'category', label: '二、再看 Codex Harness 架構', collapsed: false,
       items: [
         'architecture/system-map',
         'architecture/codex-core',
@@ -44,7 +45,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '五、使用方式',
+      type: 'category', label: '五、實際使用 Codex',
       items: [
         'usage/cli',
         'usage/noninteractive-ci',
@@ -54,7 +55,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '六、應用與設計',
+      type: 'category', label: '六、把 Harness 用在真實系統',
       items: [
         'applications/workflows',
         'applications/where-should-behavior-live',
