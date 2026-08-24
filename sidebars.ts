@@ -78,14 +78,25 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '八、Codex vs DeepSeek：比較與選型', collapsed: true,
+      type: 'category', label: '八、Pi Agent Harness：Minimal Runtime', collapsed: true,
       items: [
+        'pi/overview',
+        'pi/architecture',
+        'pi/session-and-extensions',
+        'pi/integration-and-security',
+      ],
+    },
+    {
+      type: 'category', label: '九、三種 Harness：比較與選型', collapsed: true,
+      items: [
+        'comparison/three-harnesses',
+        'comparison/three-way-selection-guide',
         'comparison/codex-vs-deepseek',
         'comparison/selection-guide',
       ],
     },
     {
-      type: 'category', label: '九、把 Harness 用在真實系統', collapsed: true,
+      type: 'category', label: '十、把 Harness 用在真實系統', collapsed: true,
       items: [
         'applications/workflows',
         'applications/where-should-behavior-live',
@@ -94,12 +105,13 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '十、參考資料', collapsed: true,
+      type: 'category', label: '十一、參考資料', collapsed: true,
       items: [
         'reference/glossary',
         'reference/source-reading',
         'reference/source-map',
         'reference/deepseek-source-map',
+        'reference/pi-source-map',
         'reference/reading-list',
       ],
     },

@@ -4,35 +4,47 @@ title: 官方閱讀清單與版本策略
 
 # 官方閱讀清單與版本策略
 
-Codex 與 DeepSeek Harness 都演進很快。這份清單按「架構價值」排序，並刻意讓兩邊都覆蓋架構、使用、擴充、安全、整合與原始碼，而不是只替其中一邊列完整資料。
+Codex、DeepSeek Harness 與 Pi 都演進很快。這份清單按「架構價值」排序，並盡量讓三套都覆蓋：
 
-## 第一層：先理解 Harness
+```text
+架構
+使用
+Model / Loop
+State
+擴充
+Security
+Integration
+Source
+```
 
-### Codex：Unrolling the Codex agent loop
+## 第一層：先理解三套 Harness 的定位
 
-https://openai.com/index/unrolling-the-codex-agent-loop/
+### Codex
 
-重點：prompt assembly、Responses request、tools、stream、tool output append、prefix caching、turn termination。
+- [Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+- [Unlocking the Codex harness / App Server](https://openai.com/index/unlocking-the-codex-harness/)
+- [Codex documentation](https://learn.chatgpt.com/docs/codex)
 
-### Codex：Unlocking the Codex harness / App Server
+重點：prompt assembly、Responses request、tools、stream、tool output append、prefix caching、Thread / Turn / Item、App Server。
 
-https://openai.com/index/unlocking-the-codex-harness/
+### DeepSeek Harness
 
-重點：從 TUI-centric runtime 抽出 App Server、Thread / Turn / Item、client integration boundary。
+- [DeepSeek Harness 官方總覽](https://deepseek.com/harness/en/)
+- [Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
+- [`packages/README.md`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md)
 
-### DeepSeek Harness：官方總覽
+重點：Everything is a Plugin、Cordis、Profiles / Bundles、Service / Provider / Consumer、Session Log、Capability Seams。
 
-https://deepseek.com/harness/en/
+### Pi
 
-重點：Everything is a Plugin、Cordis、traceable Session、Standard / Code / Minimal / Creator Mode。
+- [Pi 官方網站](https://pi.dev/)
+- [Pi Documentation](https://pi.dev/docs/latest)
+- [`earendil-works/pi`](https://github.com/earendil-works/pi)
+- [Coding Agent README](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md)
 
-### DeepSeek Harness：Architecture
+重點：minimal terminal coding harness、`pi-ai`、`pi-agent-core`、`AgentSession`、Extensions、四種 run mode，以及刻意不內建的 features。
 
-https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md
-
-這是 DeepSeek 最重要的架構文件。重點：Profiles / Bundles、Service Map、Turn / Step flow、Session Log、Capability Seams、where new behavior goes。
-
-## 第二層：實際使用與 Composition
+## 第二層：實際使用 / Boot / Runtime Composition
 
 ### Codex
 
@@ -40,41 +52,105 @@ https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md
 - Non-interactive: https://learn.chatgpt.com/docs/non-interactive-mode
 - SDK: https://learn.chatgpt.com/docs/codex-sdk
 - App Server: https://learn.chatgpt.com/docs/app-server
-- Config basics: https://learn.chatgpt.com/docs/config-file/config-basic
-- Config reference: https://learn.chatgpt.com/docs/config-file/config-reference
+- Config: https://learn.chatgpt.com/docs/config-file/config-reference
 
 ### DeepSeek Harness
 
-- Top-level README: https://github.com/deepseek-ai/deepseek-harness/blob/master/README.md
-- Architecture / Profiles: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md
+- README: https://github.com/deepseek-ai/deepseek-harness/blob/master/README.md
+- Architecture: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md
 - Packages map: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md
 - Base bundle: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/bundle/base/README.md
 
-閱讀 DeepSeek 時特別記住：
+實際 boot 建議搭配：
 
 ```bash
 dsh --profile web --dump-config
 ```
 
-它比只看 package tree 更能回答「現在實際 boot 哪一棵 Plugin Tree」。
+### Pi
 
-## 第三層：Agent State / Loop / Model
+- Usage: https://pi.dev/docs/latest/usage
+- Settings: https://pi.dev/docs/latest/settings
+- SDK: https://pi.dev/docs/latest/sdk
+- Coding Agent README: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md
+
+Pi 的 boot 心智模型建議從：
+
+```text
+createAgentSession()
+→ ModelRuntime
+→ SettingsManager
+→ SessionManager
+→ ResourceLoader
+→ Agent
+→ AgentSession
+```
+
+開始讀。
+
+## 第三層：Model / Agent Loop
 
 ### Codex
 
-- Agent loop engineering article: https://openai.com/index/unrolling-the-codex-agent-loop/
+- Agent loop article: https://openai.com/index/unrolling-the-codex-agent-loop/
 - Core: https://github.com/openai/codex/tree/main/codex-rs/core
 - Model provider registry: https://github.com/openai/codex/blob/main/codex-rs/model-provider-info/src/lib.rs
 
 ### DeepSeek Harness
 
-- Core subsystem: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md
-- Session: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md
-- Persistence: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/persistence.md
+- Core: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md
 - LLM streaming: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/llm-streaming.md
 - System prompt: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/system-prompt.md
 
-## 第四層：Extension / Skills / Subagents
+### Pi
+
+- `pi-agent-core`: https://github.com/earendil-works/pi/blob/main/packages/agent/README.md
+- `pi-ai` Models: https://github.com/earendil-works/pi/blob/main/packages/ai/src/models.ts
+- `pi-ai` types: https://github.com/earendil-works/pi/blob/main/packages/ai/src/types.ts
+- `AgentSession`: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/agent-session.ts
+- SDK composition: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/sdk.ts
+
+Pi 特別值得分清：
+
+```text
+Provider
+→ vendor / auth / model catalog / stream ownership
+
+API implementation
+→ reusable protocol behavior
+```
+
+## 第四層：State / Persistence / Compaction
+
+### Codex
+
+重點讀 Thread / Rollout / Thread Store 與 App Server lifecycle。
+
+### DeepSeek Harness
+
+- Session: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md
+- Persistence: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/persistence.md
+- Session Projection: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session-projection.md
+- Session Query: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session-query.md
+
+### Pi
+
+- Sessions: https://pi.dev/docs/latest/sessions
+- Session Format: https://pi.dev/docs/latest/session-format
+- Compaction: https://pi.dev/docs/latest/compaction
+- `SessionManager`: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/session-manager.ts
+
+Pi 的核心 state invariant 是：
+
+```text
+Session Entry
+→ id / parentId
+→ Tree / Branch
+```
+
+這和 DeepSeek event sourcing、Codex Thread / Turn / Item 是三種不同 state design。
+
+## 第五層：Extension / Skills / Subagents
 
 ### Codex
 
@@ -91,9 +167,28 @@ dsh --profile web --dump-config
 - Subagents: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/subagent.md
 - Workflow: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/workflow.md
 - Extensions: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/extensions.md
-- Extension cookbook: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cookbook/extension-cookbook.md
 
-## 第五層：Security / Execution
+### Pi
+
+- Extensions: https://pi.dev/docs/latest/extensions
+- Pi docs customization index: https://pi.dev/docs/latest
+- `ResourceLoader`: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/resource-loader.ts
+- Extensions source: https://github.com/earendil-works/pi/tree/main/packages/coding-agent/src/core/extensions
+
+Pi 要特別注意官方刻意不提供 canonical built-in：
+
+```text
+MCP
+Subagents
+Plan mode
+Permission popups
+Built-in todos
+Background bash
+```
+
+這些是 design choice，不是「做不到」。
+
+## 第六層：Security / Execution
 
 ### Codex
 
@@ -107,76 +202,102 @@ dsh --profile web --dump-config
 - Approval: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/approval.md
 - Permission Presets: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/permission-presets.md
 - Credentials: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/credentials.md
-- Filesystem: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/filesystem.md
-- Subprocess: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/subprocess.md
 
-## 第六層：Integration / Client Surface
+### Pi
+
+- Security: https://pi.dev/docs/latest/security
+- Settings / Project Trust: https://pi.dev/docs/latest/settings
+- Repo permission / containerization overview: https://github.com/earendil-works/pi
+
+Pi 必須牢記：
+
+```text
+Project Trust
+≠
+Sandbox
+```
+
+Pi 預設沿用啟動它的 OS user permissions；強 isolation 應放到 Docker、microVM、OpenShell 或其他外部 execution environment。
+
+## 第七層：Integration / Client Surface
 
 ### Codex
 
-- App Server docs: https://learn.chatgpt.com/docs/app-server
-- App Server source README: https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md
-- Protocol README: https://github.com/openai/codex/blob/main/codex-rs/protocol/README.md
+- App Server: https://learn.chatgpt.com/docs/app-server
+- App Server source: https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md
+- Protocol: https://github.com/openai/codex/blob/main/codex-rs/protocol/README.md
 
 ### DeepSeek Harness
 
 - SDK: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/sdk/README.md
 - ACP: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/acp/README.md
-- Typert subsystem: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/typert.md
+- Typert: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/typert.md
 - Web server: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/web-server.md
-- Client modules: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/client-modules.md
 
-## 第七層：Code Mode / Workflow Experiment
+### Pi
 
-### DeepSeek Code Mode
+- SDK: https://pi.dev/docs/latest/sdk
+- RPC: https://pi.dev/docs/latest/rpc
+- `sdk.ts`: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/sdk.ts
+- Coding Agent modes: https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md
 
-- Code Runtime: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/code-runtime.md
-- Code Mode design note: https://github.com/deepseek-ai/deepseek-harness/blob/master/.agents/notes/implemented/feature/2026-06-15-code-mode.md
+Pi integration surface：
 
-重點：native / code tool presentation、generated SDK、Code Runtime seam、降低中間 Tool round trip。
+```text
+Interactive TUI
+Print / JSON
+RPC over stdin/stdout JSONL
+SDK
+```
 
-## 第八層：Production Correctness / Operations
+## 第八層：Production Correctness / Tests
+
+### Codex
+
+搭配 core tests、protocol schemas、App Server contracts 與官方 engineering articles。
 
 ### DeepSeek Harness
 
 - Invariants: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/invariants.md
-- Session Query: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session-query.md
-- Session Projection: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session-projection.md
 - Session Telemetry: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session-telemetry.md
 - Package release expectations: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md
 
-Codex 的 production correctness 則應搭配 core tests、protocol schemas、App Server contract 與官方 product docs / engineering articles 閱讀。
+### Pi
+
+Pi provider layer有大量：
+
+```text
+stream
+abort
+context overflow
+tool-call-without-result
+cross-provider handoff
+```
+
+等測試；另外應搭配 session / compaction / extension lifecycle tests 閱讀。
+
+Repo：
+
+https://github.com/earendil-works/pi
 
 ## 第九層：Source Maps
 
-教材內建兩張對稱導讀：
+教材內建三張 source map：
 
 - [`openai/codex` 原始碼導讀地圖](./source-map.md)
 - [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](./deepseek-source-map.md)
-- [雙 Harness 原始碼導讀入口](./source-reading.md)
+- [`earendil-works/pi` 原始碼導讀地圖](./pi-source-map.md)
+- [三套 Harness 原始碼導讀入口](./source-reading.md)
 
-### Codex Source
-
-- Repository: https://github.com/openai/codex
-- Rust workspace: https://github.com/openai/codex/tree/main/codex-rs
-- Core: https://github.com/openai/codex/tree/main/codex-rs/core
-
-### DeepSeek Source
-
-- Repository: https://github.com/deepseek-ai/deepseek-harness
-- Packages: https://github.com/deepseek-ai/deepseek-harness/tree/master/packages
-- Subsystems: https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/subsystems
-- Module graph: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/module-graph.md
-
-## 文件與 Source 衝突時怎麼辦
+## 文件與 Source 衝突時怎麼辦？
 
 ### Codex
 
-Public docs 優先判定公開使用 contract；source 用來理解當前 implementation 與實驗功能。
+Public docs 優先判定公開使用 contract；source 用來理解 implementation 與實驗能力。
 
 ### DeepSeek Harness
 
-同時看三層：
+同時看：
 
 ```text
 Top-level project status
@@ -184,11 +305,19 @@ Package-level release expectation
 Current source / generated subsystem docs
 ```
 
-因為「整體 Developer Preview」與「部分 packages 標 stable API」可以同時成立。
+因為整體 Developer Preview 與部分 stable packages 可以同時成立。
 
-### 歷史文章 / Design Notes
+### Pi
 
-適合理解「為什麼這樣設計」，但必須用當前 source 核對 transition 是否已完成。
+優先順序：
+
+```text
+pi.dev latest docs
+→ current main source
+→ package README / tests
+```
+
+Pi 目前改動很活躍，特別是 Models / Provider、AgentSession runtime、extension API 與 session behavior，不宜把主分支內部細節當永久 contract。
 
 ## 每次重大更新至少重查
 
@@ -204,8 +333,8 @@ Current source / generated subsystem docs
 
 ### DeepSeek Harness
 
-1. developer-preview / release status；
-2. `packages/README.md` release expectations；
+1. project release status；
+2. package release expectations；
 3. Architecture service map；
 4. Profiles / Bundles；
 5. SessionEvent / persistence / projection；
@@ -215,4 +344,17 @@ Current source / generated subsystem docs
 9. SDK / ACP / Host / Client；
 10. Code Mode / Workflow / Invariants。
 
-這比把 package 名稱或版本號當永久事實更耐維護。
+### Pi
+
+1. package names / repo migration；
+2. `pi-ai` Provider / Models contract；
+3. `pi-agent-core` Agent state / events；
+4. `AgentSession` responsibilities；
+5. Session format version / migration；
+6. compaction / branch summarization；
+7. ResourceLoader / project trust；
+8. ExtensionAPI / event lifecycle；
+9. SDK / RPC protocol；
+10. security / containerization guidance。
+
+這比把 package 名稱、版本號或 feature list 當永久事實更耐維護。

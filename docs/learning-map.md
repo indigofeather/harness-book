@@ -5,13 +5,26 @@ title: 學習地圖：先建立全局觀
 
 # 學習地圖：先建立全局觀
 
-如果你第一次接觸 Agent Harness，不需要先懂 Rust、TypeScript、Responses API、MCP、JSON-RPC 或 Cordis。
+如果你第一次接觸 Agent Harness，不需要先懂 Rust、TypeScript、Responses API、MCP、JSON-RPC、Cordis 或 Pi Extensions。
 
 先記住一件事：
 
 > **Model 只是負責判斷的一部分；Harness 才把模型連到 Tools、Environment、Policy 與 State。**
 
-這份教材會先用 **Codex** 建立完整 Coding Agent 心智模型，再用 **DeepSeek Harness** 展示另一種更 plugin-first 的 Runtime 設計，最後逐項比較。
+這份教材現在用三套開源實作建立全局觀：
+
+```text
+Codex
+→ 完整、opinionated 的 Coding Agent Runtime
+
+DeepSeek Harness
+→ Runtime responsibility 可重組的 Plugin / Capability Framework
+
+Pi
+→ Minimal、self-extensible 的 Coding Harness
+```
+
+三套不是互斥品牌，而是三種不同的架構答案。
 
 ## 最簡單的 Harness 模型
 
@@ -52,20 +65,21 @@ flowchart LR
   C --> A
 ```
 
-後面的 Agent Loop、Context、Tool Runtime、Sandbox、Session、Thread / Turn / Item，本質上都在回答：
+後面的 Agent Loop、Context、Tool Runtime、Sandbox、Session、Thread / Turn / Item、SessionEvent、JSONL Tree，本質上都在回答：
 
 > **如何把 Think → Act → Observe 做到 production-grade？**
 
-## 教材現在有三個主要區塊
+## 教材現在有五個主要區塊
 
 ```mermaid
 flowchart LR
-  G[① Harness 基礎概念] --> C[② Codex Harness\n完整 Coding Agent Runtime]
-  C --> D[③ DeepSeek Harness\nPlugin-first Runtime]
-  D --> X[④ Codex vs DeepSeek\n比較與選型]
+  G[① Harness 基礎概念] --> C[② Codex\nProductized Runtime]
+  C --> D[③ DeepSeek\nComposable Runtime]
+  D --> P[④ Pi\nMinimal Runtime]
+  P --> X[⑤ 三方比較與選型]
 ```
 
-### 第一階段：先建立共同語言
+## 第一階段：先建立共同語言
 
 先理解：
 
@@ -76,9 +90,9 @@ flowchart LR
 - Policy / Sandbox；
 - State / Persistence。
 
-這些概念不屬於任何單一品牌。
+這些概念不屬於任何單一產品。
 
-### 第二階段：用 Codex 看完整 Production Runtime
+## 第二階段：用 Codex 看完整 Production Runtime
 
 Codex 很適合用來學：
 
@@ -92,11 +106,11 @@ Sandbox / Approval
 Skills / MCP / Hooks / Rules
 ```
 
-它代表一種設計哲學：
+它代表：
 
 > **核心 Runtime 有明確中心，再提供高階 extension surfaces。**
 
-### 第三階段：用 DeepSeek 看另一種 Runtime Composition
+## 第三階段：用 DeepSeek 看 Runtime Composition
 
 DeepSeek Harness 很適合用來學：
 
@@ -111,11 +125,40 @@ Code Mode
 Profiles / Bundles
 ```
 
-它代表另一種哲學：
+它代表：
 
 > **Runtime 本身就是可以重新組合的 Plugin Tree。**
 
-### 第四階段：再做真正比較
+## 第四階段：用 Pi 看 Minimal Harness
+
+Pi 很適合用來學：
+
+```text
+pi-ai
+pi-agent-core
+AgentSession
+SessionManager
+JSONL Tree
+ResourceLoader
+TypeScript Extensions
+RPC / SDK
+Project Trust
+External Sandbox
+```
+
+它代表：
+
+> **不是所有常見 Agent feature 都必須內建在 core。**
+
+Pi 特別適合拿來問：
+
+```text
+最小 Agent Runtime 需要什麼？
+哪些 behavior 應該交給 extension？
+哪些 security responsibility 應該留在外部 execution environment？
+```
+
+## 第五階段：再做真正比較
 
 不要只問「哪個比較強」，而比較：
 
@@ -126,11 +169,12 @@ Loop 能不能替換？
 State 怎麼建模？
 Tool 如何 orchestrate？
 Sandbox / Execution backend 怎麼抽象？
+Extension boundary 有多深？
 UI / Client 怎麼整合？
-目前 production maturity 如何？
+Production responsibility 由誰承擔？
 ```
 
-## Codex 與 DeepSeek 的第一張對照圖
+## 三套 Harness 的第一張對照圖
 
 ### Codex：明確 Runtime Core
 
@@ -159,9 +203,83 @@ flowchart TB
   K --> UI[UI Plugin]
 ```
 
+### Pi：Minimal Core + Deep Extensions
+
+```mermaid
+flowchart TB
+  AI[pi-ai\nModels / Providers]
+  AC[pi-agent-core\nAgent / Tool Loop]
+  AS[AgentSession\nCoding Runtime]
+  R[ResourceLoader]
+  E[Extensions / Skills / Packages]
+  X[External OS / Container / Sandbox]
+
+  AS --> AC
+  AC --> AI
+  R --> AS
+  E --> R
+  AS --> X
+```
+
 現在不需要判斷哪一張比較好，只要先看懂：
 
-> **兩者把「固定」與「可替換」的邊界畫在不同地方。**
+> **三套把「固定、可替換、移出 core」的邊界畫在不同地方。**
+
+## State Model 是最好的並讀入口
+
+### Codex
+
+```text
+Thread
+└─ Turn
+   └─ Item
+```
+
+### DeepSeek
+
+```text
+Session
+→ SessionEvents
+→ Projection / Context / Replay
+```
+
+### Pi
+
+```text
+Session JSONL
+→ Entry(id, parentId)
+→ Tree / Branch
+```
+
+這三種 abstraction 都合理，但服務的產品目標不同。
+
+## Security Model 也完全不同
+
+### Codex
+
+```text
+Sandbox / Approval / Policy
+→ Runtime 核心產品能力
+```
+
+### DeepSeek
+
+```text
+Sandbox / Approval / Credentials
+→ Formal capability seams
+```
+
+### Pi
+
+```text
+Project Trust
+→ 控制 resource loading
+
+OS / Container / Sandbox
+→ 真正 execution isolation
+```
+
+Pi 官方明確提醒：**Project Trust 不是 sandbox。**
 
 ## 三種閱讀深度
 
@@ -172,32 +290,33 @@ flowchart TB
 1. [導論](./intro.md)
 2. [什麼是 Harness？](./foundations/what-is-harness.md)
 3. [Agent Loop](./foundations/agent-loop.md)
-4. [Sandbox 與 Approvals](./security/sandbox-and-approvals.md)
-5. [Codex vs DeepSeek Harness](./comparison/codex-vs-deepseek.md)
+4. [三種 Agent Harness：Codex、DeepSeek、Pi](./comparison/three-harnesses.md)
 
 先懂圖與概念，不必讀原始碼。
 
 ### Level 2：工程師 / Agent 重度使用者
 
-完整讀 Codex 一到六部分，再讀：
+先完整讀 Codex，再讀：
 
 - [DeepSeek Harness：先建立正確心智模型](./deepseek/overview.md)
-- [Cordis 與 Plugin 架構](./deepseek/architecture.md)
-- [Session、Events 與可追溯狀態](./deepseek/session-and-events.md)
-- [Code Mode、Capability 與 Runtime 組合](./deepseek/code-mode-and-plugins.md)
+- [Pi Agent Harness：先建立正確心智模型](./pi/overview.md)
+- [Pi Session、Compaction 與 Extensions](./pi/session-and-extensions.md)
+- [三種 Harness 選型指南](./comparison/three-way-selection-guide.md)
 
-你會開始理解同一個 Harness 問題可以有不同 architectural answer。
+你會開始理解同一個 Harness 問題可以有完全不同 architectural answer。
 
 ### Level 3：Agent / Platform 架構設計者
 
-除了 source map、App Server、State、Security，也重點讀：
+除了 App Server、State、Security，也重點讀：
 
-- [Codex vs DeepSeek：架構逐項比較](./comparison/codex-vs-deepseek.md)
-- [如何選擇 Codex 或 DeepSeek Harness？](./comparison/selection-guide.md)
+- [`openai/codex` 原始碼導讀地圖](./reference/source-map.md)
+- [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](./reference/deepseek-source-map.md)
+- [`earendil-works/pi` 原始碼導讀地圖](./reference/pi-source-map.md)
+- [三套 Harness 原始碼導讀入口](./reference/source-reading.md)
 
-這一層的目標不是「會使用兩套工具」，而是能自己回答：
+這一層的目標不是「會使用三套工具」，而是能自己回答：
 
-> **如果我要做新的 Agent Platform，哪些 abstraction 值得採用？**
+> **如果我要做新的 Agent Platform，哪些 abstraction 值得固定、哪些值得做 seam、哪些應該移出 core？**
 
 ## 後面所有名詞都可以放進六層模型
 
@@ -223,13 +342,14 @@ flowchart TB
 
 通常就不會迷路。
 
-## 你現在只需要記住六句話
+## 你現在只需要記住七句話
 
 1. **Model 是推理元件，Harness 是完整控制與執行系統。**
 2. **Agent 的核心是 Think → Act → Observe。**
 3. **Tool Call 是行動提案，不等於行動已經成功。**
-4. **Sandbox / Permission 是真正的 capability boundary。**
+4. **Sandbox / Permission 是 capability boundary，不一定必須由同一層實作。**
 5. **Codex 強調完整、opinionated 的 Coding Agent Runtime。**
 6. **DeepSeek Harness 強調 Runtime 本身的 Plugin Composition。**
+7. **Pi 強調 Minimal Core 與深度 Self-extension。**
 
-帶著這六句話往下讀，就能把兩套系統看成「同一問題的不同解法」，而不是兩堆孤立 API。
+帶著這七句話往下讀，就能把三套系統看成「同一問題的不同解法」，而不是三堆孤立 API。
