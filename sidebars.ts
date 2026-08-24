@@ -91,12 +91,12 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      type: 'category', label: '九、三種 Harness｜比較與選型', collapsed: true,
+      type: 'category', label: '九、三種 Harness｜比較、選型與採用', collapsed: true,
       items: [
-        'comparison/three-harnesses',
-        'comparison/three-way-selection-guide',
-        'comparison/codex-vs-deepseek',
-        'comparison/selection-guide',
+        'comparison/overview',
+        'comparison/architecture-comparison',
+        'comparison/scenario-selection',
+        'comparison/adoption-playbook',
       ],
     },
     {

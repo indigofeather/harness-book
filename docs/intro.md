@@ -238,20 +238,15 @@ RPC / SDK
 Project Trust / external isolation
 ```
 
-### 5. 最後再比較
+### 5. 最後進入第九章比較、選型與採用
 
-這時用同一組問題問三套：
+這時不再只是列功能，而依序問：
 
 ```text
-Runtime center 在哪？
-Model 怎麼替換？
-Agent Loop 哪裡固定？
-State 怎麼保存與重建？
-Tools 怎麼註冊與執行？
-Extension boundary 有多深？
-Security enforcement 放哪一層？
-Client 怎麼嵌入？
-Production responsibility 誰承擔？
+應該比較哪些 responsibility？
+三套 boundary 到底差在哪？
+放進具體產品情境怎麼選？
+真正採用前如何 PoC 與驗證？
 ```
 
 ## 三種 State Model 是最值得並讀的例子
@@ -347,7 +342,7 @@ Pi 官方明確提醒 Project Trust 不是 sandbox。這個差異在做 enterpri
 1. [學習地圖：先建立全局觀](./learning-map.md)
 2. [什麼是 Harness？](./foundations/what-is-harness.md)
 3. [Agent Loop](./foundations/agent-loop.md)
-4. [三種 Agent Harness：Codex、DeepSeek、Pi](./comparison/three-harnesses.md)
+4. [第九章導讀：如何比較 Agent Harness](./comparison/overview.md)
 
 ### 工程師 / Agent 重度使用者
 
@@ -355,16 +350,18 @@ Pi 官方明確提醒 Project Trust 不是 sandbox。這個差異在做 enterpri
 
 - [DeepSeek Harness：先建立正確心智模型](./deepseek/overview.md)
 - [Pi Agent Harness：先建立正確心智模型](./pi/overview.md)
-- [三種 Harness 選型指南](./comparison/three-way-selection-guide.md)
+- [架構維度逐項比較](./comparison/architecture-comparison.md)
+- [情境式選型](./comparison/scenario-selection.md)
 
 ### Agent / Platform 架構設計者
 
 再深入：
 
-- [雙／多 Harness 原始碼導讀入口](./reference/source-reading.md)
+- [三套 Harness 原始碼導讀入口](./reference/source-reading.md)
 - [`openai/codex` Source Map](./reference/source-map.md)
 - [`deepseek-ai/deepseek-harness` Source Map](./reference/deepseek-source-map.md)
 - [`earendil-works/pi` Source Map](./reference/pi-source-map.md)
+- [PoC、採用與混用策略](./comparison/adoption-playbook.md)
 
 目標不是「會用三個 CLI」，而是能回答：
 

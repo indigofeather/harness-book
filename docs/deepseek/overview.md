@@ -12,7 +12,7 @@ title: DeepSeek Harness：先建立正確心智模型
 
 > **Codex 比較像一套核心明確、產品化程度高的 Agent Runtime；DeepSeek Harness 則把 Runtime 本身拆成可組合的 Plugins 與 Capability Seams。**
 
-這不是在比較 GPT 與 DeepSeek 模型能力，而是在比較兩套 **Harness architecture**。
+這不是在比較 GPT 與 DeepSeek 模型能力，而是在比較 **Harness architecture**。
 
 ## DeepSeek Harness 不是「只能跑 DeepSeek 模型」
 
@@ -160,7 +160,7 @@ Model
 
 ## DeepSeek 不只是「架構實驗框架」
 
-為了和 Codex 公平比較，教材不會只介紹 Cordis / Code Mode。
+為了和另外兩套 Harness 公平比較，教材不會只介紹 Cordis / Code Mode。
 
 目前 DeepSeek 官方 repo 已有完整的 subsystem families：
 
@@ -178,25 +178,22 @@ Web Host / Client
 Telemetry / Guards / Invariants / Test Support
 ```
 
-因此後面的 DeepSeek 區塊也會用和 Codex 相同的問題來讀，而不是把它當附錄。
+因此後面的 DeepSeek 區塊也會用和 Codex、Pi 相同的問題來讀，而不是把它當附錄。
 
 ## 對稱學習矩陣
 
-| Harness 問題 | Codex 教材 | DeepSeek 教材 |
-|---|---|---|
-| Runtime 怎麼拆 | `codex-core` / App Server | Cordis / Service / Provider / Consumer |
-| 怎麼啟動與設定 | Config / CLI | Profiles / Bundles / Patches |
-| Model 怎麼接 | Model Provider | LLM Adapter Seam |
-| Loop 怎麼跑 | Agent Loop / Turn | Agent Loop / Turn / Step |
-| State 怎麼存 | Thread / Rollout / Store | SessionEvent / Persistence / Projection |
-| Tool 怎麼執行 | Tool Router / Exec | Tool Registry / Capability Provider |
-| 怎麼擴充 | Skill / MCP / Hook / Subagent | Skills / MCP pattern / Hooks / Extensions / Subagents |
-| 安全怎麼做 | Sandbox / Approval / Rules | Sandbox / Approval / Permission Presets / Credentials |
-| 怎麼嵌入產品 | App Server / SDK / exec | Web / SDK JSON-RPC / ACP / Typert |
-| Production correctness | tests / protocol / product runtime | Invariants / Replay / Test Support / Telemetry |
-| 原始碼怎麼讀 | Codex Source Map | DeepSeek Source Map |
-
-這才是本教材後續比較兩者的基準。
+| Harness 問題 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Runtime 怎麼拆 | `codex-core` / App Server | Cordis / Service / Provider / Consumer | `pi-agent-core` / `AgentSession` |
+| 怎麼啟動與設定 | Config / CLI | Profiles / Bundles / Patches | settings / resources / SDK |
+| Model 怎麼接 | Model Provider | LLM Adapter Seam | `pi-ai` Provider runtime |
+| Loop 怎麼跑 | Agent Loop / Turn | Agent Loop / Turn / Step | Agent + AgentSession lifecycle |
+| State 怎麼存 | Thread / Rollout / Store | SessionEvent / Persistence / Projection | JSONL Entry Tree |
+| Tool 怎麼執行 | Tool Router / Exec | Tool Registry / Capability Provider | AgentTool / Extension Tool |
+| 怎麼擴充 | Skill / MCP / Hook / Subagent | Skills / Hooks / Extensions / Subagents | TS Extensions / Skills / Packages |
+| 安全怎麼做 | Sandbox / Approval / Rules | Sandbox / Approval / Permission Presets | Project Trust + external isolation |
+| 怎麼嵌入產品 | App Server / SDK / exec | Web / SDK / ACP / Typert | SDK / RPC / TUI |
+| 原始碼怎麼讀 | Codex Source Map | DeepSeek Source Map | Pi Source Map |
 
 ## DeepSeek 最值得學的六個架構思想
 
@@ -219,7 +216,8 @@ Telemetry / Guards / Invariants / Test Support
 8. [整合介面：Web、SDK、JSON-RPC、ACP 與自製 Client](./integration-surfaces.md)。
 9. [Production、測試、Invariant 與成熟度](./production-and-testing.md)。
 10. [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](../reference/deepseek-source-map.md)。
-11. [Codex vs DeepSeek Harness](../comparison/codex-vs-deepseek.md)。
+11. [第九章比較框架](../comparison/overview.md)。
+12. [架構維度逐項比較](../comparison/architecture-comparison.md)。
 
 ## 官方來源
 

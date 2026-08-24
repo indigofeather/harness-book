@@ -306,8 +306,9 @@ Pi 很適合回答這些問題：
 2. [Pi 架構：從 pi-ai 到 AgentSession](./architecture.md)
 3. [Pi Session、Compaction 與 Extensions](./session-and-extensions.md)
 4. [Pi Integration、Project Trust 與 Security](./integration-and-security.md)
-5. [三種 Harness：Codex、DeepSeek、Pi](../comparison/three-harnesses.md)
-6. [`earendil-works/pi` 原始碼導讀地圖](../reference/pi-source-map.md)
+5. [第九章導讀：如何比較 Agent Harness](../comparison/overview.md)
+6. [架構維度逐項比較](../comparison/architecture-comparison.md)
+7. [`earendil-works/pi` 原始碼導讀地圖](../reference/pi-source-map.md)
 
 ## 官方來源
 

@@ -13,8 +13,8 @@ const cards = [
   ['研究 DeepSeek Code Mode', '理解模型如何用受控 TypeScript 組合多步 Tool 操作，以及 Capability Seam 的設計價值。', '/docs/deepseek/code-mode-and-plugins'],
   ['理解 Pi Agent Harness', '從 pi-ai、pi-agent-core、AgentSession 到 JSONL Session Tree，理解 Minimal Harness 的第三種答案。', '/docs/pi/overview'],
   ['研究 Pi Extensions', '理解 TypeScript Extension 如何加入 Tools、Events、Commands、UI、Compaction 與 Provider。', '/docs/pi/session-and-extensions'],
-  ['比較三種 Harness', '用同一組維度比較 Productized Runtime、Composable Framework 與 Minimal Harness。', '/docs/comparison/three-harnesses'],
-  ['做 Harness 技術選型', '依 Coding Agent、Multi-model、Runtime Composition、Security 與 Extension Ownership 選擇架構。', '/docs/comparison/three-way-selection-guide'],
+  ['建立 Harness 比較框架', '先學會比較 Runtime Center、State、Security、Extension 與 Ownership，再進入三方架構差異。', '/docs/comparison/overview'],
+  ['做 Harness 技術選型', '把 Coding Agent、Platform、Security、Embedded、Research 等需求映射到三種架構。', '/docs/comparison/scenario-selection'],
 ];
 
 const layers = [
@@ -36,7 +36,7 @@ export default function Home() {
           <p className={styles.heroHint}>不要求先懂 Rust、Cordis 或 Pi Extensions；每個核心概念都先用直覺圖解，再進入 Runtime、原始碼與技術選型。</p>
           <div className={styles.buttons}>
             <Link className={clsx(styles.ctaButton, styles.primaryButton)} to="/docs/learning-map">先看學習地圖</Link>
-            <Link className={clsx(styles.ctaButton, styles.secondaryButton)} to="/docs/comparison/three-harnesses">直接看三方比較</Link>
+            <Link className={clsx(styles.ctaButton, styles.secondaryButton)} to="/docs/comparison/architecture-comparison">直接看三方比較</Link>
           </div>
         </div>
       </header>
@@ -70,7 +70,7 @@ export default function Home() {
           <div className="container">
             <div className={styles.sectionHeader}>
               <Heading as="h2">依你的目標選閱讀路徑</Heading>
-              <p>可以先用 Codex 建立完整 Coding Agent 心智模型，再讀 DeepSeek 與 Pi；也可以直接進入三方比較，再回頭補各自架構細節。</p>
+              <p>可以先用 Codex 建立完整 Coding Agent 心智模型，再讀 DeepSeek 與 Pi；也可以直接進入第九章比較框架，再回頭補各自架構細節。</p>
             </div>
             <div className="cardGrid">
               {cards.map(([title, body, href]) => (

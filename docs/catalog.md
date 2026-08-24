@@ -74,12 +74,14 @@ title: 完整教材目錄
 - [Session、Compaction 與 Extensions](./pi/session-and-extensions.md)
 - [Integration、Project Trust 與 Security](./pi/integration-and-security.md)
 
-## 九、三種 Harness｜比較與選型
+## 九、三種 Harness｜比較、選型與採用
 
-- [Codex、DeepSeek Harness、Pi 三方比較](./comparison/three-harnesses.md)
-- [三種 Harness 選型指南](./comparison/three-way-selection-guide.md)
-- [Codex vs DeepSeek 深度比較](./comparison/codex-vs-deepseek.md)
-- [Codex vs DeepSeek 選型補充](./comparison/selection-guide.md)
+1. [第九章導讀：如何比較 Agent Harness](./comparison/overview.md)
+2. [架構維度逐項比較：Codex、DeepSeek Harness、Pi](./comparison/architecture-comparison.md)
+3. [情境式選型：什麼時候選 Codex、DeepSeek Harness 或 Pi？](./comparison/scenario-selection.md)
+4. [PoC、採用與混用策略](./comparison/adoption-playbook.md)
+
+這四篇依序回答：**怎麼比較 → 差在哪裡 → 怎麼選 → 怎麼驗證與導入**。
 
 ## 十、Harness｜真實系統與實務
 
@@ -108,7 +110,7 @@ title: 完整教材目錄
 → Codex 架構
 → DeepSeek Overview
 → Pi Overview
-→ 三方比較
+→ 第九章比較框架
 ```
 
 ### 想做 Agent Platform / Harness 架構
@@ -117,7 +119,8 @@ title: 完整教材目錄
 Codex Core / App Server
 → DeepSeek Capability Seams
 → Pi AgentSession / Extensions
-→ 三方選型
+→ 架構維度逐項比較
+→ PoC 與採用策略
 → Build Your Own Harness
 ```
 

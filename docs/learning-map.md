@@ -11,7 +11,7 @@ title: 學習地圖：先建立全局觀
 
 > **Model 只是負責判斷的一部分；Harness 才把模型連到 Tools、Environment、Policy 與 State。**
 
-這份教材現在用三套開源實作建立全局觀：
+這份教材用三套開源實作建立全局觀：
 
 ```text
 Codex
@@ -27,12 +27,6 @@ Pi
 三套不是互斥品牌，而是三種不同的架構答案。
 
 ## 最簡單的 Harness 模型
-
-假設你對 Agent 說：
-
-> 幫我找出登入失敗的原因，修好它，然後跑測試。
-
-真正發生的事情比較像：
 
 ```mermaid
 flowchart LR
@@ -69,17 +63,18 @@ flowchart LR
 
 > **如何把 Think → Act → Observe 做到 production-grade？**
 
-## 教材現在有五個主要區塊
+## 教材主要閱讀路徑
 
 ```mermaid
 flowchart LR
   G[① Harness 基礎概念] --> C[② Codex\nProductized Runtime]
   C --> D[③ DeepSeek\nComposable Runtime]
   D --> P[④ Pi\nMinimal Runtime]
-  P --> X[⑤ 三方比較與選型]
+  P --> X[⑤ 第九章\n比較、選型、採用]
+  X --> A[⑥ 真實系統與原始碼]
 ```
 
-## 第一階段：先建立共同語言
+## 第一階段：建立共同語言
 
 先理解：
 
@@ -150,80 +145,25 @@ External Sandbox
 
 > **不是所有常見 Agent feature 都必須內建在 core。**
 
-Pi 特別適合拿來問：
+## 第五階段：第九章不要直接做排行榜
+
+第九章現在刻意拆成四步：
 
 ```text
-最小 Agent Runtime 需要什麼？
-哪些 behavior 應該交給 extension？
-哪些 security responsibility 應該留在外部 execution environment？
+比較框架
+→ 架構維度逐項比較
+→ 情境式選型
+→ PoC、採用與混用策略
 ```
 
-## 第五階段：再做真正比較
+閱讀順序：
 
-不要只問「哪個比較強」，而比較：
+1. [第九章導讀：如何比較 Agent Harness](./comparison/overview.md)
+2. [架構維度逐項比較：Codex、DeepSeek Harness、Pi](./comparison/architecture-comparison.md)
+3. [情境式選型](./comparison/scenario-selection.md)
+4. [PoC、採用與混用策略](./comparison/adoption-playbook.md)
 
-```text
-穩定中心是什麼？
-Model 怎麼替換？
-Loop 能不能替換？
-State 怎麼建模？
-Tool 如何 orchestrate？
-Sandbox / Execution backend 怎麼抽象？
-Extension boundary 有多深？
-UI / Client 怎麼整合？
-Production responsibility 由誰承擔？
-```
-
-## 三套 Harness 的第一張對照圖
-
-### Codex：明確 Runtime Core
-
-```mermaid
-flowchart TB
-  C[codex-core]
-  C --> M[Model Provider]
-  C --> T[Tools / MCP]
-  C --> S[State]
-  C --> P[Sandbox / Policy]
-  E[Skills / Hooks / Rules / Subagents] --> C
-  UI[CLI / IDE / App Server] --> C
-```
-
-### DeepSeek：Plugin Composition
-
-```mermaid
-flowchart TB
-  K[Cordis]
-  K --> M[Model Plugin]
-  K --> L[Loop Plugin]
-  K --> T[Tool Plugin]
-  K --> S[Session Plugin]
-  K --> SB[Sandbox Plugin]
-  K --> ST[Storage Plugin]
-  K --> UI[UI Plugin]
-```
-
-### Pi：Minimal Core + Deep Extensions
-
-```mermaid
-flowchart TB
-  AI[pi-ai\nModels / Providers]
-  AC[pi-agent-core\nAgent / Tool Loop]
-  AS[AgentSession\nCoding Runtime]
-  R[ResourceLoader]
-  E[Extensions / Skills / Packages]
-  X[External OS / Container / Sandbox]
-
-  AS --> AC
-  AC --> AI
-  R --> AS
-  E --> R
-  AS --> X
-```
-
-現在不需要判斷哪一張比較好，只要先看懂：
-
-> **三套把「固定、可替換、移出 core」的邊界畫在不同地方。**
+這樣可以避免把「架構差異」「產品情境」「採用風險」混成同一張比較表。
 
 ## State Model 是最好的並讀入口
 
@@ -251,7 +191,7 @@ Session JSONL
 → Tree / Branch
 ```
 
-這三種 abstraction 都合理，但服務的產品目標不同。
+三種 abstraction 都合理，但服務的產品目標不同。
 
 ## Security Model 也完全不同
 
@@ -290,7 +230,7 @@ Pi 官方明確提醒：**Project Trust 不是 sandbox。**
 1. [導論](./intro.md)
 2. [什麼是 Harness？](./foundations/what-is-harness.md)
 3. [Agent Loop](./foundations/agent-loop.md)
-4. [三種 Agent Harness：Codex、DeepSeek、Pi](./comparison/three-harnesses.md)
+4. [第九章比較框架](./comparison/overview.md)
 
 先懂圖與概念，不必讀原始碼。
 
@@ -300,10 +240,8 @@ Pi 官方明確提醒：**Project Trust 不是 sandbox。**
 
 - [DeepSeek Harness：先建立正確心智模型](./deepseek/overview.md)
 - [Pi Agent Harness：先建立正確心智模型](./pi/overview.md)
-- [Pi Session、Compaction 與 Extensions](./pi/session-and-extensions.md)
-- [三種 Harness 選型指南](./comparison/three-way-selection-guide.md)
-
-你會開始理解同一個 Harness 問題可以有完全不同 architectural answer。
+- [架構維度逐項比較](./comparison/architecture-comparison.md)
+- [情境式選型](./comparison/scenario-selection.md)
 
 ### Level 3：Agent / Platform 架構設計者
 
@@ -313,6 +251,7 @@ Pi 官方明確提醒：**Project Trust 不是 sandbox。**
 - [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](./reference/deepseek-source-map.md)
 - [`earendil-works/pi` 原始碼導讀地圖](./reference/pi-source-map.md)
 - [三套 Harness 原始碼導讀入口](./reference/source-reading.md)
+- [PoC、採用與混用策略](./comparison/adoption-playbook.md)
 
 這一層的目標不是「會使用三套工具」，而是能自己回答：
 

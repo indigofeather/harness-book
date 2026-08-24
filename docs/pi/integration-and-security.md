@@ -440,8 +440,9 @@ Pi 逼你直接面對一個很好的 Harness 設計問題：
 
 ## 延伸
 
-- [三種 Harness：Codex、DeepSeek、Pi](../comparison/three-harnesses.md)
-- [三種 Harness 選型指南](../comparison/three-way-selection-guide.md)
+- [第九章導讀：如何比較 Agent Harness](../comparison/overview.md)
+- [架構維度逐項比較](../comparison/architecture-comparison.md)
+- [情境式選型](../comparison/scenario-selection.md)
 - [`earendil-works/pi` 原始碼導讀地圖](../reference/pi-source-map.md)
 
 ## 官方來源
