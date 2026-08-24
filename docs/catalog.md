@@ -96,7 +96,7 @@ title: 完整教材目錄
 - [deepseek-ai/deepseek-harness 原始碼導讀地圖](./reference/deepseek-source-map.md)
 - [earendil-works/pi 原始碼導讀地圖](./reference/pi-source-map.md)
 - [官方閱讀清單](./reference/reading-list.md)
-- [AI / LLM 資源](./reference/llm-resources.md)
+- [AI / LLM 資源](./reference/llm-resources.mdx)
 
 ## 三條最常用的閱讀路徑
 
