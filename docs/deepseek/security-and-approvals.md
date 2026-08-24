@@ -163,7 +163,7 @@ CredentialRef
 → secret only at operation boundary
 ```
 
-詳細見：[Permission、Credentials 與 Execution Worlds](./permissions-credentials-execution-worlds.md)。
+詳細見：[Permission、Credentials 與 Execution Worlds](./execution-worlds-and-credentials.md)。
 
 ## Guard、Approval、Sandbox、Invariant
 

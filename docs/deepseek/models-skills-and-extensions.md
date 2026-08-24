@@ -100,7 +100,7 @@ Subagent
 
 這三個 abstraction 要分開。
 
-詳細見：[Skills、Subagents、Workflows 與長生命週期工作](./skills-subagents-workflows.md)。
+詳細見：[Skills、Subagents、Workflows 與長生命週期工作](./subagents-workflows-and-jobs.md)。
 
 ## Hooks / Typed Events
 
