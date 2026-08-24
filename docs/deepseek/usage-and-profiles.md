@@ -40,6 +40,24 @@ flowchart LR
   R --> A[Running Harness]
 ```
 
+## 官方 Web UI 實際長什麼樣？
+
+DeepSeek Harness 官方文件本身就附有 Web UI 截圖。這張是 **設定 → 模型** 頁面，可以直接看到 DeepSeek Provider 卡片，以及「新增提供方 / 新增自訂提供方」入口：
+
+![DeepSeek Harness 官方模型設定畫面](https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers-models-page.zh.png)
+
+*官方原始素材：[`docs/user/guide/providers-models-page.zh.png`](https://github.com/deepseek-ai/deepseek-harness/blob/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers-models-page.zh.png)，由官方中文 [模型設定指南](https://github.com/deepseek-ai/deepseek-harness/blob/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers.zh.md) 使用；來源 repository 採 MIT License。*
+
+這張圖很適合拿來對照前面講的「Model Adapter 是 composition component」：使用者看到的是 Provider / Model 設定介面，但底層對應的是 `ctx.llm` 與各種 adapter/provider 組合，而不是把 DeepSeek Model 寫死在 Harness 裡。
+
+官方也提供 **自訂 Provider** 的實際表單：
+
+![DeepSeek Harness 官方自訂 Provider 表單](https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers-custom-form.zh.png)
+
+*官方原始素材：[`docs/user/guide/providers-custom-form.zh.png`](https://github.com/deepseek-ai/deepseek-harness/blob/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers-custom-form.zh.png)。畫面中的 Provider ID、API 地址、協議與憑據欄位，正好把「custom LLM provider」從抽象架構落到實際產品 UX。*
+
+因此後面讀 Profile / Bundle 時要記得：DeepSeek Harness 的 composability 並不只存在原始碼或 Mermaid 圖裡，它也會被投影成使用者真正操作的 Web UI。
+
 ## Profile 是什麼？
 
 Profile 是一個**具名的 Harness 組合**。
@@ -278,6 +296,7 @@ Dump Config = inspect actual boot tree
 ## 官方來源
 
 - [DeepSeek Harness](https://deepseek.com/harness/en/)
+- [官方 Web UI 模型設定指南](https://github.com/deepseek-ai/deepseek-harness/blob/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e/docs/user/guide/providers.zh.md)
 - [Architecture：Profiles and bundles](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
 - [`dsh-base`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/bundle/base/README.md)
 - [`packages/README.md`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md)

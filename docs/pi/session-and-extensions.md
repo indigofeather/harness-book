@@ -83,6 +83,16 @@ context rebuild
 
 都可以直接建立在 entry lineage 上。
 
+### 官方 `/tree` 畫面
+
+Pi 官方 README 直接用 `/tree` 截圖展示這個資料模型如何變成實際操作介面：
+
+![Pi Tree View 官方截圖](https://raw.githubusercontent.com/earendil-works/pi/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/tree-view.png)
+
+*官方原始素材：[`packages/coding-agent/docs/images/tree-view.png`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/tree-view.png)，由官方 Coding Agent README 的 [Sessions → Branching](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md#branching) 使用。*
+
+這張畫面很重要，因為它不是單純的 UI tree：它直接反映 persisted entry 的 `id / parentId` lineage。也就是說，教材中的 tree Mermaid 是抽象化，而這張是官方產品真正讓使用者操作 branch 的方式。
+
 ## 3. `SessionManager` 的責任
 
 讀 Pi 時要把 `SessionManager` 和 `AgentSession` 分開。
@@ -438,4 +448,5 @@ SDK 裡建立 child AgentSession
 - [Session File Format](https://pi.dev/docs/latest/session-format)
 - [Compaction & Branch Summarization](https://pi.dev/docs/latest/compaction)
 - [Extensions](https://pi.dev/docs/latest/extensions)
+- [Pi Coding Agent README 與官方 Tree View](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md#branching)
 - [`SessionManager` source](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/session-manager.ts)

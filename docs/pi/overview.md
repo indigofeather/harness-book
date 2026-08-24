@@ -20,6 +20,14 @@ Pi       → Minimal / Self-extensible Harness
 
 三者都能成為完整 Coding Agent，但「哪些東西應該內建」的答案非常不同。
 
+## 先看 Pi 官方 Interactive Mode
+
+![Pi Interactive Mode 官方截圖](https://raw.githubusercontent.com/earendil-works/pi/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/interactive-mode.png)
+
+*官方原始素材：[`packages/coding-agent/docs/images/interactive-mode.png`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/interactive-mode.png)，由 Pi 官方 [`packages/coding-agent/README.md`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md#interactive-mode) 使用；來源 repo 採 MIT License。*
+
+這張圖很能代表 Pi 的哲學：預設 UI 很完整，但仍是一個相對薄的 presentation layer。官方 README 明確說 Extension 可以替換 editor、加入 widget、status line、footer 或 overlay，所以畫面不是一個封閉產品殼，而是可延伸的 AgentSession UI。
+
 ## Pi 的 package map
 
 Pi monorepo 目前最重要的 package 是：
@@ -306,5 +314,5 @@ Pi 很適合回答這些問題：
 - [Pi 官方網站](https://pi.dev/)
 - [Pi Documentation](https://pi.dev/docs/latest)
 - [`earendil-works/pi`](https://github.com/earendil-works/pi)
-- [Coding Agent README](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md)
+- [Coding Agent README 與 Interactive Mode 官方截圖](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md)
 - [Security](https://pi.dev/docs/latest/security)

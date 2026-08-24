@@ -12,6 +12,14 @@ Codex CLI 不只是「在終端機輸入 Prompt」。
 
 它把 Model、Tools、Approvals、Diff、Steering、Thread Lifecycle 都包成一個人可以操作的介面。
 
+## 先看官方 CLI 實際畫面
+
+![OpenAI Codex CLI 官方介面](https://raw.githubusercontent.com/openai/codex/2df67054232090af8d2fa197c46b994bc2b0dda1/.github/codex-cli-splash.png)
+
+*官方原始素材：[`openai/codex` README](https://github.com/openai/codex/blob/2df67054232090af8d2fa197c46b994bc2b0dda1/README.md) 使用的 Codex CLI splash，固定到 revision `2df6705…`。來源 repository 採 [Apache-2.0](https://github.com/openai/codex/blob/2df67054232090af8d2fa197c46b994bc2b0dda1/LICENSE)。*
+
+從這張官方畫面可以直接看到：CLI 不只是聊天輸入框，而是把工作進度、Tool activity、Diff 與互動控制整合成一個 terminal client。後面談到的 Harness Events、Approval 與 Thread lifecycle，最後都需要被某個 Client Surface 呈現；這張圖就是 Codex 官方提供的其中一個實際 surface。
+
 ## 先看 CLI 在整體架構的位置
 
 ```mermaid
@@ -303,4 +311,5 @@ flowchart TB
 ## 來源
 
 - [Codex CLI](https://learn.chatgpt.com/docs/codex/cli)
+- [`openai/codex` README 與官方 CLI splash](https://github.com/openai/codex/blob/2df67054232090af8d2fa197c46b994bc2b0dda1/README.md)
 - [Configuration](https://learn.chatgpt.com/docs/config-file/config-basic)
