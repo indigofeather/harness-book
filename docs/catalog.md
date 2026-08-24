@@ -4,33 +4,37 @@ title: 完整教材目錄
 
 # 完整教材目錄
 
-這一頁是整份《Agent Harness 深度指南》的快速索引。若你第一次閱讀，建議先看 [學習地圖](./learning-map.md)；若你已知道自己要找哪個主題，可以直接從這裡跳到對應章節。
+這一頁是《Agent Harness 深度指南》的完整索引。Sidebar 與 `llms.txt` / `llms-full.txt` 會使用同一份 canonical reading order。
+
+如果第一次閱讀，建議先看 [學習地圖](./learning-map.md)。
 
 ## 一、Agent Harness 基礎
 
 - [什麼是 Harness？](./foundations/what-is-harness.md)
-- [Agent Loop](./foundations/agent-loop.md)
-- [Context 與 Caching](./foundations/context-and-caching.md)
-- [Thread / Turn / Item](./foundations/thread-turn-item.md)
+- [Agent Loop：Think → Act → Observe](./foundations/agent-loop.md)
+- [Context、Caching 與 Compaction](./foundations/context-and-caching.md)
+- [State Models 與 Lifecycle：Codex、DeepSeek、Pi](./foundations/thread-turn-item.md)
 
-## 二、Codex｜架構與核心 Runtime
+## 二、Codex｜Productized Runtime 完整導讀
+
+### 架構與 Runtime
 
 - [系統架構總覽](./architecture/system-map.md)
-- [官方視角：Codex 介面與 App Server](./architecture/official-visuals.md)
-- [codex-core](./architecture/codex-core.md)
-- [App Server 與 Protocol](./architecture/app-server-and-protocol.md)
+- [官方介面與 App Server 視角](./architecture/official-visuals.md)
+- [`codex-core`](./architecture/codex-core.md)
 - [Model Provider 與 Streaming](./architecture/model-provider-and-streaming.md)
 - [Tool Execution](./architecture/tool-execution.md)
 - [State 與 Persistence](./architecture/state-and-persistence.md)
+- [App Server 與 Protocol](./architecture/app-server-and-protocol.md)
 - [Client Surfaces](./architecture/client-surfaces.md)
 
-## 三、Codex｜安全、權限與信任邊界
+### Security / Trust
 
 - [Sandbox 與 Approvals](./security/sandbox-and-approvals.md)
 - [Permissions、Rules 與 Network](./security/permissions-rules-network.md)
 - [Trust Boundaries](./security/trust-boundaries.md)
 
-## 四、Codex｜客製化與擴充
+### Customization / Extensions
 
 - [Config](./customization/config.md)
 - [AGENTS.md](./customization/agents-md.md)
@@ -39,7 +43,7 @@ title: 完整教材目錄
 - [Hooks](./customization/hooks.md)
 - [Subagents 與 Worktrees](./customization/subagents-and-worktrees.md)
 
-## 五、Codex｜使用與整合
+### Usage / Integration
 
 - [Codex CLI](./usage/cli.md)
 - [Non-interactive / CI](./usage/noninteractive-ci.md)
@@ -47,89 +51,133 @@ title: 完整教材目錄
 - [App Server](./usage/app-server.md)
 - [GitHub Actions](./usage/github-actions.md)
 
-## 六、Codex｜實戰 Labs
+## 三、DeepSeek Harness｜Composable Runtime 完整導讀
+
+### 架構與 Runtime
+
+- [完整導讀](./deepseek/overview.md)
+- [官方 Lifecycle / Tool Pipeline](./deepseek/official-visuals.md)
+- [Cordis 與 Everything-is-a-Plugin](./deepseek/architecture.md)
+- [Model Adapter 與 Agent Loop](./deepseek/model-and-agent-loop.md)
+- [Tool Execution Pipeline](./deepseek/tool-execution.md)
+- [Context、System Prompt 與 Compaction](./deepseek/context-and-compaction.md)
+- [Session 與 Events](./deepseek/session-and-events.md)
+- [Profiles、Bundles 與啟動組合](./deepseek/usage-and-profiles.md)
+
+### Extensions / Orchestration
+
+- [Models、Skills、Hooks 與 Extensions](./deepseek/models-skills-and-extensions.md)
+- [Subagents、Workflows 與 Jobs](./deepseek/subagents-workflows-and-jobs.md)
+- [Code Mode 與 Plugins](./deepseek/code-mode-and-plugins.md)
+
+### Security / Execution
+
+- [Sandbox、Approval 與 Permission Presets](./deepseek/security-and-approvals.md)
+- [Credentials 與 Execution Worlds](./deepseek/execution-worlds-and-credentials.md)
+
+### Usage / Integration / Production
+
+- [CLI、Headless 與 Automation](./deepseek/headless-and-automation.md)
+- [Web、SDK、JSON-RPC、ACP 與 Client](./deepseek/integration-surfaces.md)
+- [Production、Testing、Invariant 與 Replay](./deepseek/production-and-testing.md)
+
+## 四、Pi｜Minimal Runtime 完整導讀
+
+### 架構與 Runtime
+
+- [完整導讀](./pi/overview.md)
+- [官方 TUI 與 Session Tree](./pi/official-visuals.md)
+- [從 pi-ai 到 AgentSession](./pi/architecture.md)
+- [Model Providers：pi-ai](./pi/model-providers.md)
+- [Agent Loop 與 Tools](./pi/agent-loop-and-tools.md)
+- [Context、Compaction 與 Branching](./pi/context-compaction-and-branching.md)
+- [Session、Compaction 與 Extensions](./pi/session-and-extensions.md)
+
+### Resources / Extensions
+
+- [Resources、Skills、Prompts 與 Pi Packages](./pi/resources-skills-and-packages.md)
+- [Extensions 與自訂 TUI](./pi/extensions-and-ui.md)
+
+### Security / Usage / Integration
+
+- [Project Trust 與 Isolation](./pi/project-trust-and-isolation.md)
+- [CLI 與日常使用](./pi/cli-and-usage.md)
+- [SDK 與 RPC](./pi/sdk-and-rpc.md)
+- [Production 與 Governance](./pi/production-and-governance.md)
+
+## 五、三套 Harness｜實戰 Labs
+
+### Codex Labs
 
 - [Trace a Turn](./labs/trace-a-turn.md)
 - [Guardrails](./labs/guardrails.md)
 - [Embed App Server](./labs/embed-app-server.md)
 
-## 七、DeepSeek Harness｜Composable Runtime
+### DeepSeek Harness Labs
 
-- [先建立正確心智模型](./deepseek/overview.md)
-- [官方視角：Lifecycle 與 Tool Pipeline](./deepseek/official-visuals.md)
-- [Cordis 與 Plugin 架構](./deepseek/architecture.md)
-- [Profiles、Bundles 與啟動組合](./deepseek/usage-and-profiles.md)
-- [Session 與 Events](./deepseek/session-and-events.md)
-- [Models、Skills 與 Extensions](./deepseek/models-skills-and-extensions.md)
-- [Code Mode 與 Plugins](./deepseek/code-mode-and-plugins.md)
-- [Security 與 Approvals](./deepseek/security-and-approvals.md)
-- [Integration Surfaces](./deepseek/integration-surfaces.md)
-- [Production 與 Testing](./deepseek/production-and-testing.md)
+- [Trace Turn / Step / Events](./deepseek/labs/trace-turn-step.md)
+- [Build a Capability Plugin](./deepseek/labs/capability-plugin.md)
+- [Replay / Invariant / Session Correctness](./deepseek/labs/replay-invariant.md)
 
-## 八、Pi｜Minimal Runtime
+### Pi Labs
 
-- [先建立正確心智模型](./pi/overview.md)
-- [官方視角：Pi TUI 與 Session Tree](./pi/official-visuals.md)
-- [從 pi-ai 到 AgentSession](./pi/architecture.md)
-- [Session、Compaction 與 Extensions](./pi/session-and-extensions.md)
-- [Integration、Project Trust 與 Security](./pi/integration-and-security.md)
+- [Trace AgentSession / JSONL Session](./pi/labs/session-tree.md)
+- [Build a Pi Extension](./pi/labs/extension.md)
+- [Branch / Tree / Compaction](./pi/labs/branch-compaction.md)
 
-## 九、三種 Harness｜比較、選型與採用
+## 六、三種 Harness｜比較、選型與採用
 
-1. [第九章導讀：如何比較 Agent Harness](./comparison/overview.md)
-2. [架構維度逐項比較：Codex、DeepSeek Harness、Pi](./comparison/architecture-comparison.md)
-3. [情境式選型：什麼時候選 Codex、DeepSeek Harness 或 Pi？](./comparison/scenario-selection.md)
+1. [比較框架：如何比較 Agent Harness](./comparison/overview.md)
+2. [架構維度逐項比較](./comparison/architecture-comparison.md)
+3. [情境式選型](./comparison/scenario-selection.md)
 4. [PoC、採用與混用策略](./comparison/adoption-playbook.md)
 
-這四篇依序回答：**怎麼比較 → 差在哪裡 → 怎麼選 → 怎麼驗證與導入**。
+閱讀邏輯：**怎麼比較 → 差在哪 → 怎麼選 → 怎麼驗證與導入**。
 
-## 十、Harness｜真實系統與實務
+## 七、Harness｜真實系統與實務
 
-- [Workflows](./applications/workflows.md)
-- [Behavior 應該放在哪一層？](./applications/where-should-behavior-live.md)
-- [Build Your Own Harness](./applications/build-your-own-harness.md)
-- [Production Checklist](./applications/production-checklist.md)
+- [實務工作流](./applications/workflows.md)
+- [Behavior / Capability / Enforcement 應該放在哪一層？](./applications/where-should-behavior-live.md)
+- [從零設計自己的 Agent Harness](./applications/build-your-own-harness.md)
+- [Production Harness Checklist](./applications/production-checklist.md)
 
-## 十一、參考資料與原始碼
+## 八、參考資料與原始碼
 
-- [Glossary](./reference/glossary.md)
+- [Glossary：三方名詞速查](./reference/glossary.md)
 - [三套 Harness 原始碼導讀入口](./reference/source-reading.md)
-- [openai/codex 原始碼導讀地圖](./reference/source-map.md)
-- [deepseek-ai/deepseek-harness 原始碼導讀地圖](./reference/deepseek-source-map.md)
-- [earendil-works/pi 原始碼導讀地圖](./reference/pi-source-map.md)
+- [`openai/codex` Source Map](./reference/source-map.md)
+- [`deepseek-ai/deepseek-harness` Source Map](./reference/deepseek-source-map.md)
+- [`earendil-works/pi` Source Map](./reference/pi-source-map.md)
 - [官方閱讀清單](./reference/reading-list.md)
 - [AI / LLM 資源](./reference/llm-resources.mdx)
 
-## 三條最常用的閱讀路徑
+## 三條推薦路徑
 
-### 第一次接觸 Agent Harness
+### 快速建立全局觀
 
 ```text
-學習地圖
-→ Harness 基礎
-→ Codex 架構
-→ DeepSeek Overview
-→ Pi Overview
-→ 第九章比較框架
+第一章
+→ Codex / DeepSeek / Pi Overview
+→ 第六章比較框架
 ```
 
-### 想做 Agent Platform / Harness 架構
+### 想做 Agent Platform
 
 ```text
-Codex Core / App Server
-→ DeepSeek Capability Seams
-→ Pi AgentSession / Extensions
+第一章
+→ 三套完整導讀
+→ 三套 Labs
+→ 第六章
+→ 第七章 Build Your Own Harness
+→ 三套 Source Map
+```
+
+### 想直接做技術選型
+
+```text
+三套 Overview
 → 架構維度逐項比較
-→ PoC 與採用策略
-→ Build Your Own Harness
+→ 情境式選型
+→ PoC / Adoption
+→ Production Checklist
 ```
-
-### 想直接讀原始碼
-
-```text
-三套 Harness 原始碼導讀入口
-→ 選一套 Source Map
-→ 從 responsibility boundary 追到 implementation
-```
-
-> Sidebar 是網站的 canonical reading order；`llms.txt` 與 `llms-full.txt` 也會依同一份 Sidebar 排列。

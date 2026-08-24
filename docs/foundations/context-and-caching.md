@@ -4,376 +4,373 @@ title: Context、Instructions、Caching 與 Compaction
 
 # Context、Instructions、Caching 與 Compaction
 
-如果 Model 是大腦，那 **Context 就是它此刻桌面上能看到的全部資料**。
+如果 Model 是大腦，**Context 就是它這一次 inference 真正看得到的工作桌**。
 
-Model 不會自動知道整個 repository，也不會永久記得前面所有事情。Harness 每一輪都要決定：
+Model 不會永久記得整個 repository，也不會直接讀取 Harness 的全部 state。每一輪 Model Request 之前，Harness 都必須決定：
 
-> **這次到底要把哪些資訊放到 Model 面前？**
+> **哪些資訊現在要被投影到 Model 面前？哪些資訊只需要留在 durable state？**
 
 這就是 context orchestration。
 
-## 初學者版：Context 像工作桌，不是整間倉庫
-
-想像你在修一台機器。
-
-倉庫裡可能有：
-
-- 幾萬個零件；
-- 幾百本手冊；
-- 過去所有維修紀錄；
-- 各種工具。
-
-但你不會把整個倉庫全部搬到工作桌上。
-
-你只會放：
-
-- 這次維修的目標；
-- 相關手冊；
-- 現在正在拆的零件；
-- 需要的工具；
-- 剛剛測量出的結果。
-
-Agent 的 context 也是一樣。
+## Context 像工作桌，不是整間倉庫
 
 ```mermaid
 flowchart LR
-  W[大量可用資訊\nRepo / History / Tools / Rules] --> H[Harness\n選擇與整理]
-  H --> C[有限 Context Window]
+  W[大量可用資訊\nRepo / History / Skills / Events / Settings] --> H[Harness\nSelect + Order + Render]
+  H --> C[有限 Model Context]
   C --> M[Model]
 ```
 
-**Context 的目標不是越多越好，而是「現在最有用的資訊」越完整越好。**
+Agent 系統可能知道很多東西，但 Model 每一輪只應看到目前有用的 subset。
 
-## Context 通常由哪些東西組成？
+因此 Context 的品質不是：
 
-可以先分成四層。
+```text
+越多越好
+```
+
+而是：
+
+```text
+relevant
++ correctly ordered
++ stable where useful
++ recoverable
++ within budget
+```
+
+## Context 通常包含哪些層？
+
+可以先用四層理解：
 
 ```mermaid
 flowchart TB
-  A[① Stable Instructions\n模型 / 平台 / 安全規則]
-  B[② Project Guidance\nAGENTS.md / project rules]
-  C[③ Capabilities\nTools / MCP / Skills metadata]
-  D[④ Dynamic History\nUser / Tool / Agent events]
+  A[① Stable Instructions\nHarness identity / deployment persona]
+  B[② Project / User Guidance\nAGENTS / context files / scoped rules]
+  C[③ Capability Description\nTools / Skills / Runtime context]
+  D[④ Dynamic Projection\nMessages / Tool results / Session facts]
   A --> B --> C --> D
 ```
 
-### 1. Stable instructions
+### 1. Stable Instructions
 
-幾乎每輪都需要，例如：
+例如 Harness identity、產品級 instruction、deployment persona。
 
-- base instructions；
-- 平台能力說明；
-- 安全與執行規則。
+這一層通常希望相對穩定。
 
-這些通常放在前面，並且盡量穩定。
-
-### 2. Project guidance
+### 2. Project / User Guidance
 
 例如：
 
-- AGENTS.md；
 - repository conventions；
-- 專案特定限制。
+- AGENTS.md / CLAUDE.md / context files；
+- project-level persona / settings；
+- task-specific constraints。
 
-它們提供「從程式碼本身不一定看得出來」的規則。
+它們是 guidance，不應和真正的 OS enforcement 混淆。
 
-### 3. Capabilities
+### 3. Capability Description
 
-讓 Model 知道自己有哪些 action 可以選：
+讓 Model 知道現在能使用哪些能力：
 
-- shell tool schema；
-- file tools；
-- MCP tools；
-- Skill name / description。
+```text
+tool schemas
+skill catalog
+runtime bindings
+subagent / workflow surface
+```
 
-### 4. Dynamic history
+不一定所有能力都要一次展開全文；progressive disclosure 往往更有效。
 
-任務跑起來後持續增加：
+### 4. Dynamic Projection
 
-- user messages；
-- tool calls；
-- tool results；
-- file edits；
-- agent messages；
-- reasoning / events。
+從 durable state 與 live runtime 中投影出：
 
-這一層通常是最容易把 context 撐大的地方。
+```text
+user messages
+assistant outputs
+tool calls / results
+selected events
+summaries
+current workspace context
+```
 
-## 一次 Model Call 看到的是「Context Snapshot」
+這一層最容易快速長大。
 
-不要把 Model 想成一直在線、一直看著你的電腦。
-
-比較接近：
+## 一次 Model Call 看到的是 Snapshot
 
 ```mermaid
 sequenceDiagram
   participant H as Harness
   participant M as Model
 
-  H->>M: Snapshot #1\nInstructions + history + user request
-  M-->>H: Read file
-  H->>H: Tool executes
-  H->>M: Snapshot #2\n原本內容 + file result
-  M-->>H: Run tests
-  H->>H: Tool executes
-  H->>M: Snapshot #3\n原本內容 + test result
-  M-->>H: Final answer
+  H->>M: Context Snapshot 1
+  M-->>H: propose read file
+  H->>H: execute + persist
+  H->>M: Context Snapshot 2 + file result
+  M-->>H: propose tests
+  H->>H: execute + persist
+  H->>M: Context Snapshot 3 + test result
+  M-->>H: final result
 ```
 
-每一次 inference，Harness 都要重新提供 Model 所需的世界狀態。
+所以 Model 不需要「一直在線看著 Runtime」。Harness 每次重新建立一個足夠的 snapshot 即可。
 
-## Instruction hierarchy 和「資訊來源」不要混在一起
+## Durable State 與 Model Context 不要混為一談
 
-這裡有四個不同概念，很容易混淆。
+這是理解三套 Harness 的關鍵。
+
+```mermaid
+flowchart LR
+  D[Durable State] --> P[Projection / Context Builder]
+  P --> M[Model Context]
+```
+
+Durable State 可能保留完整 trajectory，但 Model Context 可以只取：
+
+- current branch；
+- selected events；
+- recent exact turns；
+- compacted summary；
+- relevant runtime context。
+
+「有保存」不代表「每輪都要重新送給 Model」。
+
+## 三套 Harness 如何擁有 Context？
+
+### Codex：Runtime Context + Thread History
+
+Codex 的 context orchestration 和 production agent loop 深度整合。
+
+常見來源包括：
+
+```text
+base / developer instructions
+AGENTS.md
+skills metadata
+tool schemas
+thread / turn history
+environment context
+current user input
+```
+
+Codex 特別值得研究 stable prompt prefix、tool schema consistency、prompt caching 與 runtime compaction 如何互相影響。
+
+### DeepSeek Harness：System Prompt Registry + Event Projection
+
+DeepSeek 將 system prompt 組裝本身做成 service：
+
+```text
+ordered prompt sections
++ named variables
++ scoped runtime contexts
++ tool schemas
+→ assembled once per Step
+```
+
+而 conversation state 來自 SessionEvents，再投影成 LLM message history。
+
+所以它很適合用來理解：
+
+> **Prompt contributor、durable event store、model-visible projection 可以是三個分離的 capability。**
+
+DeepSeek 另外有 compaction capability family，包含 summarization backend 與 model-free tool-result pruning。
+
+### Pi：ResourceLoader + Active Branch Context
+
+Pi 的 context 來源很分層：
+
+```text
+AGENTS.md / CLAUDE.md
+Skills
+Prompt templates
+Extension injection
+System prompt override
+Session branch
+Compaction / branch summary
+```
+
+`ResourceLoader` 負責發現 project / global resources；`SessionManager` 則從目前 active branch 建立 session context。
+
+因此 Pi 的重要問題是：
+
+> **哪些內容應該是 resource，哪些應該是 durable session entry，哪些應該由 Extension 動態注入？**
+
+## 三方 Context 對照
+
+| 問題 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Guidance 來源 | AGENTS / Skills / config | prompt sections / contexts / Skills | context files / Skills / prompts |
+| Durable history | Thread / rollout / state | SessionEvent log | JSONL Entry Tree |
+| Model projection | runtime context builder | event projection + system-prompt assembly | active branch + ResourceLoader |
+| Compaction | runtime-managed | compaction capability seam | durable compaction entries |
+| Branch-specific knowledge | Thread / fork semantics | Session lineage / projections | branch summary + entry lineage |
+| Runtime injection | runtime / extension surfaces | scoped prompt contributions / events | Extensions / ResourceLoader override |
+
+## Instruction、Config、Enforcement 是不同東西
 
 ```mermaid
 flowchart TB
-  A[Instruction Role\nSystem / Developer / User]
-  B[File Scope\nGlobal / Root / Nested AGENTS]
-  C[Config Precedence\nCLI / Project / Profile / User]
-  D[Enforcement\nRules / Permissions / Sandbox]
+  I[Instruction\nModel 應該怎麼做]
+  C[Config\nRuntime 用什麼設定]
+  E[Enforcement\nAction 技術上能不能發生]
 ```
-
-它們回答的是不同問題：
-
-- **Instruction role**：語意上誰優先？
-- **File scope**：哪個目錄下應套用哪份 guidance？
-- **Config precedence**：多份設定衝突時誰覆蓋誰？
-- **Enforcement**：某件事是真的做不到，還是只有文字叫 Model 不要做？
 
 例如：
 
 ```text
-「不要刪 production DB」
+不要刪 production database
 ```
 
-如果只寫在 AGENTS.md，它仍主要是 instruction。
+放在 project guidance 裡，只是 instruction。
 
-如果這件事必須不可違反，就要再搭配真正的 permission / execution boundary。
-
-## Prompt Caching 為什麼和 Harness 有關？
-
-假設第一輪 context 是：
+如果必須不可違反，就要再有：
 
 ```text
-[A B C D]
+permission / approval
+sandbox
+credential boundary
+external policy / execution isolation
 ```
 
-第二輪只是追加新的 tool call / result：
+不同 Harness 的 enforcement 位置可以不同，但文字 instruction 不能取代真正 boundary。
+
+## Prompt Caching 為什麼是 Harness 問題？
+
+Provider 是否支援 prompt caching 是 Model API 能力；但 Harness 決定 prompt 是否容易重用。
+
+如果穩定部分保持 exact prefix：
 
 ```text
-[A B C D E F]
+Round 1: [A B C D]
+Round 2: [A B C D E F]
+Round 3: [A B C D E F G H]
 ```
 
-第三輪：
+通常比每一輪任意重排：
 
 ```text
-[A B C D E F G H]
+[A C B D ...]
 ```
 
-```mermaid
-flowchart LR
-  R1[Round 1\nA B C D] --> R2[Round 2\nA B C D + E F]
-  R2 --> R3[Round 3\nA B C D E F + G H]
-```
+更容易保留 prefix reuse。
 
-前綴保持完全一致時，provider 比較容易重用 prefix cache。
+因此 context builder 常會追求：
 
-所以 Harness 不只在乎「內容意思差不多」，還在乎：
+- deterministic ordering；
+- stable tool schemas；
+- stable instructions；
+- append new observations where practical；
+- 必要時才重寫或 compact。
 
-- 順序是否穩定；
-- 格式是否穩定；
-- tool schema 是否 deterministic；
-- 是否只追加新的 events。
+但要注意：**cache-friendly layout 是工程策略，不等於 persisted state 必須是一條線性 append-only array。**
 
-## 為什麼「每輪重新整理成漂亮摘要」可能反而不好？
+DeepSeek 可以從 event log derive projection；Pi 可以從 tree branch derive context；仍然可以在送到 Model 前產生穩定的 prompt ordering。
 
-假設上一輪是：
-
-```text
-[A B C D]
-```
-
-下一輪 Harness 自作聰明改成：
-
-```text
-[A C B D]
-```
-
-語意可能沒有差很多，但 exact prefix 已經變了。
-
-```mermaid
-flowchart TD
-  A[Stable prefix] --> B[Cache-friendly]
-  C[每輪重排 / 重寫] --> D[Cache miss 機率增加]
-```
-
-所以 production context builder 通常追求：
-
-1. Stable content 放前面。
-2. 新 event 往尾端 append。
-3. 不要無理由重寫舊內容。
-4. Tool schema 排序 deterministic。
-5. 真正需要時才 compaction。
-
-## Context 會一直長，怎麼辦？
-
-Agent 每讀一個檔案、跑一個命令、得到一段 log，history 都可能變長。
-
-Eventually：
+## Context 變長後怎麼辦？
 
 ```mermaid
 flowchart LR
   S[Small Context] --> G[Growing History]
-  G --> N[Near Context Limit]
-  N --> C[Compaction]
-  C --> R[Reduced Durable State]
+  G --> N[Near Budget]
+  N --> C[Compaction / Pruning]
+  C --> R[Reduced Projection]
   R --> G
 ```
 
-這就是 compaction 出現的原因。
+好的 compaction 不只是聊天摘要，而是回答：
 
-## Compaction 不是「聊天摘要」
+> **未來決策還需要哪些不可輕易重建的事實？**
 
-好的 compaction 不是把歷史改寫成一篇漂亮文章。
-
-它要保留的是：
-
-> **未來做正確決策還需要哪些狀態？**
-
-例如：
-
-- User 的真正目標；
-- 不可違反的 constraints；
-- 已驗證的假設；
-- 已排除的方向；
-- 已修改哪些檔案；
-- 尚未完成的工作；
-- 重要 tool identifier；
-- 不能遺失的授權脈絡。
-
-```mermaid
-flowchart TD
-  H[Old History] --> S{哪些資訊未來還需要？}
-  S -->|可重新取得| DROP[可丟棄 / 需要時再讀]
-  S -->|不可輕易重建| KEEP[保留 Durable Facts]
-  KEEP --> C[Compact State]
-  C --> R[Recent Exact Events]
-```
-
-## 「可以重新取得」和「必須記住」要分開
-
-這是很實用的 context budget 原則。
-
-### 可以重新取得
-
-例如：
-
-- repository 原始碼；
-- package.json；
-- 某個公開文件。
-
-需要時可以再讀。
-
-### 不容易重新取得
-
-例如：
-
-- User 剛剛新增的限制；
-- 某次 approval 的脈絡；
-- tool 回傳的 opaque ID；
-- 已經驗證過的複雜推論結果。
-
-這些更值得留在 durable state。
-
-## Context Pollution：資訊太多也會讓 Agent 變差
-
-常見污染來源：
-
-```mermaid
-flowchart TB
-  P[Context Pollution]
-  P --> L[巨大 Logs]
-  P --> F[大量不相關 Files]
-  P --> S[所有 Skills 一次載入]
-  P --> R[重複 Repo Description]
-  P --> D[Verbose Debug / Reasoning]
-```
-
-### 例子：10 MB Log
-
-最差做法：
+應優先保留：
 
 ```text
-把整份 log 原封不動送進 Model
+user goal / constraints
+important decisions
+verified hypotheses
+file changes / unresolved work
+opaque identifiers
+approval / trust context
+branch knowledge that would otherwise disappear
 ```
 
-較好的 Harness 會：
+可重新讀取的 repository source，通常不需要永久逐字塞在 context。
 
-- 截斷；
-- 摘取 error vicinity；
-- 保存 locator；
-- 讓 Model 需要時再查。
+## 三套 Compaction 哲學
 
-### 例子：Skills
+### Codex
 
-如果有 30 個 Skills，不代表一開始就把 30 份 `SKILL.md` 全部放進 context。
+重點在 production runtime 如何在長任務中維持可用 context、cache 與 state continuity。
 
-更好的策略是 progressive disclosure：
+### DeepSeek Harness
 
-```mermaid
-flowchart LR
-  I[Skill Inventory\nName + Description] --> R{Relevant?}
-  R -->|No| X[不載入全文]
-  R -->|Yes| S[Load SKILL.md]
-  S --> D[需要時再讀 references]
+Compaction 是正式 capability family：summarization、token pressure、tool-result pruning 可以被 composition。
+
+### Pi
+
+有兩個容易混淆但不同的機制：
+
+```text
+Compaction
+→ context 太長，壓縮較舊內容
+
+Branch Summarization
+→ 切離一條 session branch 時，保留該分支的重要知識
 ```
+
+這和 Pi 的 tree session data model 直接相關。
+
+## Context Pollution
+
+常見來源：
+
+```text
+巨大 logs
+無關檔案
+把所有 Skills 一次載入
+重複 repo 說明
+過多 tool schemas
+大量不再需要的 tool output
+```
+
+好的 Harness 會用：
+
+- truncation；
+- search / retrieval；
+- progressive disclosure；
+- tool-result pruning；
+- compaction；
+- durable locator；
+- branch-aware projection
+
+控制 context，而不是只依賴更大的 model context window。
 
 ## Context Builder 真正要最佳化什麼？
 
-不是只有 token 數量。
-
-好的 Context Builder 同時追求：
-
 | 目標 | 意義 |
 |---|---|
-| Relevance | Model 看到的是現在真的有用的資訊 |
-| Stability | Stable prefix 不無故改變 |
-| Ordering | 重要資訊順序 deterministic |
-| Budget | 不超出合理 context 成本 |
-| Recoverability | 可重建的資訊不用永久佔位 |
-| Safety | Secret / sensitive data 不亂進 context |
-
-## 常見誤解
-
-### 誤解 1：Context 越大越好
-
-不是。無關資訊也會增加成本與干擾。
-
-### 誤解 2：Model 會永久記得前一輪
-
-不是。Harness 必須把必要 history / state 帶進下一輪。
-
-### 誤解 3：Compaction 就是摘要整段聊天
-
-不是。它是 durable state compression。
-
-### 誤解 4：Caching 只是 Model Provider 的事
-
-不是。Harness 如何排列 context，會直接影響 cache 是否容易命中。
+| Relevance | 現在真正有用 |
+| Stability | 不無故改變 stable prefix |
+| Ordering | deterministic、可預期 |
+| Budget | token / latency / cost 可控 |
+| Recoverability | 可重讀的資料不必永久佔位 |
+| Durability | 不可輕易重建的 facts 不遺失 |
+| Safety | secrets / untrusted content 有邊界 |
+| Traceability | 知道某段 context 從哪裡來 |
 
 ## 本章只要記住
 
-1. **Context 是 Model 此刻能看到的工作桌。**
-2. **Harness 決定什麼資訊要放上工作桌。**
-3. **Stable prefix + append-only events 有利於 caching。**
-4. **Context 太長時要 compact，但要保存未來決策需要的狀態。**
-5. **資訊不是越多越好，relevance 比 volume 更重要。**
+1. **Context 是 Model 這一次看得到的 projection，不等於 Harness 全部 state。**
+2. **Stable ordering 可以改善 caching，但 state model 不必因此變成單一路徑。**
+3. **Codex、DeepSeek、Pi 分別展示 Runtime-centric、event-projection、branch/resource-driven 的 Context 組裝方式。**
+4. **Compaction 的目標是保存未來決策需要的 durable knowledge。**
+5. **Instruction、Config、Enforcement 是不同責任。**
 
-下一章會把 history 裡的基本資料模型拆成 [Thread、Turn、Item](./thread-turn-item.md)。
+下一章直接比較三套 state/lifecycle 模型：[State Models 與 Lifecycle](./state-models-and-lifecycle.md)。
 
-## 延伸閱讀
+## 官方延伸閱讀
 
-- [Agent loop engineering article](https://openai.com/index/unrolling-the-codex-agent-loop/)
-- [`openai/codex` AGENTS.md](https://github.com/openai/codex/blob/main/AGENTS.md)
-- [Skills](https://learn.chatgpt.com/docs/build-skills)
+- [OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+- [DeepSeek `system-prompt`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/system-prompt/README.md)
+- [DeepSeek `compaction`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/compaction/README.md)
+- [Pi Compaction & Branch Summarization](https://pi.dev/docs/latest/compaction)

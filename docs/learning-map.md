@@ -1,294 +1,322 @@
 ---
 sidebar_position: 2
-title: 學習地圖：先建立全局觀
+title: 學習地圖：用同一組問題讀三套 Harness
 ---
 
-# 學習地圖：先建立全局觀
+# 學習地圖：用同一組問題讀三套 Harness
 
-如果你第一次接觸 Agent Harness，不需要先懂 Rust、TypeScript、Responses API、MCP、JSON-RPC、Cordis 或 Pi Extensions。
+如果第一次接觸 Agent Harness，不需要先懂 Rust、TypeScript、Responses API、Cordis、MCP 或 Pi Extensions。
 
-先記住一件事：
+先記住：
 
-> **Model 只是負責判斷的一部分；Harness 才把模型連到 Tools、Environment、Policy 與 State。**
+> **Model 負責判斷；Harness 負責把判斷連到 Tools、Execution、State、Policy 與 Client。**
 
-這份教材用三套開源實作建立全局觀：
+## 三套不是主角與配角
 
 ```text
 Codex
-→ 完整、opinionated 的 Coding Agent Runtime
+→ Productized / Opinionated Runtime
 
 DeepSeek Harness
-→ Runtime responsibility 可重組的 Plugin / Capability Framework
+→ Composable Runtime Framework
 
 Pi
-→ Minimal、self-extensible 的 Coding Harness
+→ Minimal / Self-extensible Harness
 ```
 
-三套不是互斥品牌，而是三種不同的架構答案。
+本教材現在刻意讓三套都回答同一組問題，而不是先把 Codex 學完，再用另外兩套做補充。
 
-## 最簡單的 Harness 模型
+## 全書的共同問題
 
 ```mermaid
-flowchart LR
-  U[你\n提出任務] --> H[Harness\n控制與協調]
-  H --> M[Model\n判斷下一步]
-  M --> H
-  H --> T[Tools\n讀檔、搜尋、Shell、API]
-  T --> E[Environment\nRepo、OS、網路、外部服務]
-  E --> T
-  T --> H
-  H --> M
-  H --> U
+flowchart TB
+  H[Harness]
+  H --> M[Model / Provider]
+  H --> L[Agent Loop]
+  H --> C[Context]
+  H --> T[Tools]
+  H --> S[State]
+  H --> P[Policy / Trust]
+  H --> I[Integration]
+  H --> E[Extensions]
+  H --> O[Operations / Production]
 ```
 
-| 元件 | 直覺角色 | 主要工作 |
-|---|---|---|
-| Model | 大腦 | 理解、推理、選擇下一步 |
-| Harness | 控制中心 | 組 Context、驅動 Loop、執行 Tool、保存狀態 |
-| Tools | 手與感官 | Read、Search、Shell、Patch、MCP / API |
-| Environment | 工作現場 | Repository、OS、Network、External Services |
-| Policy / Sandbox | 門禁 | 決定 Action 能不能真正執行 |
-| State | 工作筆記 | 保存已做過什麼、目前做到哪裡 |
+每讀一套，都問：
 
-## 所有 Agent 都在反覆三件事
+1. Runtime center 在哪？
+2. Model 怎麼接？
+3. Loop 怎麼驅動？
+4. Context 怎麼組？
+5. Tools 怎麼註冊與執行？
+6. State 怎麼保存、resume、fork？
+7. Security / Trust boundary 在哪？
+8. Extension 怎麼加入？
+9. Client / SDK / RPC 怎麼接？
+10. Production correctness 誰負責？
 
-```mermaid
-flowchart LR
-  A[Think\n現在該做什麼？] --> B[Act\n執行 Action / Tool]
-  B --> C[Observe\n取得真實結果]
-  C --> A
-```
+## 第一章：共同基礎
 
-後面的 Agent Loop、Context、Tool Runtime、Sandbox、Session、Thread / Turn / Item、SessionEvent、JSONL Tree，本質上都在回答：
+這一章完全不把任何單一產品的資料模型當成標準答案。
 
-> **如何把 Think → Act → Observe 做到 production-grade？**
+建議順序：
 
-## 教材主要閱讀路徑
+1. [什麼是 Harness？](./foundations/what-is-harness.md)
+2. [Agent Loop](./foundations/agent-loop.md)
+3. [Context、Caching 與 Compaction](./foundations/context-and-caching.md)
+4. [State Models 與 Lifecycle](./foundations/thread-turn-item.md)
 
-```mermaid
-flowchart LR
-  G[① Harness 基礎概念] --> C[② Codex\nProductized Runtime]
-  C --> D[③ DeepSeek\nComposable Runtime]
-  D --> P[④ Pi\nMinimal Runtime]
-  P --> X[⑤ 第九章\n比較、選型、採用]
-  X --> A[⑥ 真實系統與原始碼]
-```
-
-## 第一階段：建立共同語言
-
-先理解：
-
-- Model vs Agent vs Harness；
-- Agent Loop；
-- Context；
-- Tool Call；
-- Policy / Sandbox；
-- State / Persistence。
-
-這些概念不屬於任何單一產品。
-
-## 第二階段：用 Codex 看完整 Production Runtime
-
-Codex 很適合用來學：
+第四篇會直接並讀：
 
 ```text
-codex-core
-App Server
-Thread / Turn / Item
-Model Provider
-Tool Execution
-Sandbox / Approval
-Skills / MCP / Hooks / Rules
+Codex     Thread / Turn / Item
+DeepSeek  Session / Turn / Step / Event
+Pi        JSONL Entry Tree
 ```
 
-它代表：
+## 第二章：Codex 完整導讀
 
-> **核心 Runtime 有明確中心，再提供高階 extension surfaces。**
+Codex 的價值在於看一個成熟、opinionated Coding Agent Runtime 如何把大量 product semantics 固定下來。
 
-## 第三階段：用 DeepSeek 看 Runtime Composition
+### 架構與 Runtime
 
-DeepSeek Harness 很適合用來學：
+- 系統架構
+- `codex-core`
+- Model Provider / Streaming
+- Tool Execution
+- State / Persistence
+- App Server / Client Surfaces
 
-```text
-Cordis
-Everything is a Plugin
-Service / Provider / Consumer
-SessionEvent
-Capability Seam
-Replaceable Agent Loop
-Code Mode
-Profiles / Bundles
-```
+### Security
 
-它代表：
+- Sandbox / Approval
+- Permissions / Rules / Network
+- Trust Boundaries
 
-> **Runtime 本身就是可以重新組合的 Plugin Tree。**
+### Customization
 
-## 第四階段：用 Pi 看 Minimal Harness
+- Config
+- AGENTS.md
+- Skills / Plugins
+- MCP
+- Hooks
+- Subagents / Worktrees
 
-Pi 很適合用來學：
+### Usage / Integration
 
-```text
-pi-ai
-pi-agent-core
-AgentSession
-SessionManager
-JSONL Tree
-ResourceLoader
-TypeScript Extensions
-RPC / SDK
-Project Trust
-External Sandbox
-```
+- CLI
+- Non-interactive / CI
+- SDK
+- App Server
+- GitHub Actions
 
-它代表：
+## 第三章：DeepSeek Harness 完整導讀
 
-> **不是所有常見 Agent feature 都必須內建在 core。**
+DeepSeek Harness 不是「Codex 的 plugin-heavy 版本」，而是一套能自足成立的 composable runtime architecture。
 
-## 第五階段：第九章不要直接做排行榜
+### 架構與 Runtime
 
-第九章現在刻意拆成四步：
+- Cordis / Everything is a Plugin
+- Model Adapter / Agent Loop
+- Tool Pipeline
+- Context / Compaction
+- Session / Events
+- Profiles / Bundles
+
+### Extension / Orchestration
+
+- Skills
+- Subagent Providers
+- Workflow / Jobs
+- Code Mode
+- Extensions / Hooks
+
+### Security / Execution
+
+- Approval / Sandbox
+- Credentials
+- Execution Worlds
+
+### Usage / Integration / Production
+
+- Web UI
+- CLI / Headless
+- SDK / JSON-RPC / ACP / Typert
+- Invariants / Replay / Testing
+
+## 第四章：Pi 完整導讀
+
+Pi 的重點不是「小」，而是把很多責任從 core 移到 extension runtime 或外部 execution environment。
+
+### 架構與 Runtime
+
+- `pi-ai`
+- `pi-agent-core`
+- Agent Loop / Tools
+- AgentSession
+- SessionManager
+
+### State / Context
+
+- JSONL Session Tree
+- Context reconstruction
+- Compaction
+- Branch Summarization
+
+### Resources / Extensions
+
+- ResourceLoader
+- Skills / Prompts / Themes
+- Pi Packages
+- TypeScript Extensions
+- Custom TUI
+
+### Security / Usage / Integration
+
+- Project Trust
+- External isolation
+- CLI / Interactive / Print / JSON
+- RPC / SDK
+- Production governance
+
+## 第五章：三套 Labs
+
+不要只讀概念，直接觀察三套最關鍵的 architecture behavior。
+
+### Codex Labs
+
+- Trace a Turn
+- Guardrails
+- Embed App Server
+
+### DeepSeek Labs
+
+- Trace Turn / Step / Events
+- Build a Capability Plugin
+- Replay / Invariant
+
+### Pi Labs
+
+- Trace AgentSession / JSONL Session
+- Build an Extension
+- Branch / Tree / Compaction
+
+## 第六章：比較、選型與採用
 
 ```text
 比較框架
 → 架構維度逐項比較
 → 情境式選型
-→ PoC、採用與混用策略
+→ PoC / Adoption / 混用
 ```
 
-閱讀順序：
-
-1. [第九章導讀：如何比較 Agent Harness](./comparison/overview.md)
-2. [架構維度逐項比較：Codex、DeepSeek Harness、Pi](./comparison/architecture-comparison.md)
-3. [情境式選型](./comparison/scenario-selection.md)
-4. [PoC、採用與混用策略](./comparison/adoption-playbook.md)
-
-這樣可以避免把「架構差異」「產品情境」「採用風險」混成同一張比較表。
-
-## State Model 是最好的並讀入口
-
-### Codex
+不要先問「誰最好」，而是問：
 
 ```text
-Thread
-└─ Turn
-   └─ Item
+我要的是完整 Product Runtime？
+可重組 Agent Platform？
+Minimal 可塑形 Harness？
 ```
 
-### DeepSeek
+## 第七章：真實系統與實務
+
+這一章把三套重新抽象回 vendor-neutral engineering：
+
+- Workflow Design
+- Behavior Responsibility Placement
+- Build Your Own Harness
+- Production Checklist
+
+## 第八章：參考資料與原始碼
+
+三套都有自己的 Source Map，而且用對稱問題閱讀：
 
 ```text
-Session
-→ SessionEvents
-→ Projection / Context / Replay
+Runtime center
+→ Model / Loop
+→ State
+→ Tools
+→ Extensions
+→ Security
+→ Integration
+→ Production
 ```
 
-### Pi
+## 三套 State Model 並讀
+
+| 問題 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| 長工作邊界 | Thread | Session | Session |
+| 一次任務 | Turn | Turn | active branch + Agent lifecycle |
+| 細粒度資料 | Item | SessionEvent / Step | Entry |
+| Durable model | product objects / rollout | append-only event log | JSONL entry tree |
+| Fork | Thread-level semantics | event/history lineage | native parentId branch |
+| UI projection | Item events | Session + Agent events | AgentSession + tree view |
+
+## 三套 Extension 並讀
+
+| 需求 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Repo guidance | AGENTS.md | prompt/plugin contribution | project resources |
+| Workflow knowledge | Skill | Skill | Skill |
+| External capability | MCP / Tool | Tool Provider Plugin | Extension Tool |
+| Lifecycle behavior | Hook | Typed Events / Plugin | Extension Events |
+| Delegation | Subagent | Subagent Provider | SDK / Extension / external process |
+| Runtime composition | limited high-level surfaces | Cordis composition | Extension + package + external environment |
+
+## 三套 Security 並讀
 
 ```text
-Session JSONL
-→ Entry(id, parentId)
-→ Tree / Branch
+Codex
+→ Productized Sandbox / Approval / Rules
+
+DeepSeek
+→ Formal Sandbox / Approval / Credential seams
+
+Pi
+→ Resource Trust + extension gates + external isolation
 ```
 
-三種 abstraction 都合理，但服務的產品目標不同。
+這裡最重要的不是哪一套「比較安全」，而是 security ownership 放在哪一層。
 
-## Security Model 也完全不同
+## 推薦閱讀路線
 
-### Codex
+### 只想快速理解 Harness
 
 ```text
-Sandbox / Approval / Policy
-→ Runtime 核心產品能力
+導論
+→ 第一章
+→ 三套 Overview
+→ 第六章比較框架
 ```
 
-### DeepSeek
+### 想做 Coding Agent 整合
 
 ```text
-Sandbox / Approval / Credentials
-→ Formal capability seams
+第一章
+→ Codex Usage / App Server
+→ DeepSeek Integration
+→ Pi SDK / RPC
+→ 第六章情境選型
 ```
 
-### Pi
+### 想做 Agent Platform
 
 ```text
-Project Trust
-→ 控制 resource loading
-
-OS / Container / Sandbox
-→ 真正 execution isolation
+第一章
+→ 三套完整導讀
+→ 三套 Labs
+→ 第六章
+→ 第七章 Build Your Own Harness
+→ 三套 Source Map
 ```
 
-Pi 官方明確提醒：**Project Trust 不是 sandbox。**
+## 最後只記住七句話
 
-## 三種閱讀深度
-
-### Level 1：第一次理解 Agent
-
-建議：
-
-1. [導論](./intro.md)
-2. [什麼是 Harness？](./foundations/what-is-harness.md)
-3. [Agent Loop](./foundations/agent-loop.md)
-4. [第九章比較框架](./comparison/overview.md)
-
-先懂圖與概念，不必讀原始碼。
-
-### Level 2：工程師 / Agent 重度使用者
-
-先完整讀 Codex，再讀：
-
-- [DeepSeek Harness：先建立正確心智模型](./deepseek/overview.md)
-- [Pi Agent Harness：先建立正確心智模型](./pi/overview.md)
-- [架構維度逐項比較](./comparison/architecture-comparison.md)
-- [情境式選型](./comparison/scenario-selection.md)
-
-### Level 3：Agent / Platform 架構設計者
-
-除了 App Server、State、Security，也重點讀：
-
-- [`openai/codex` 原始碼導讀地圖](./reference/source-map.md)
-- [`deepseek-ai/deepseek-harness` 原始碼導讀地圖](./reference/deepseek-source-map.md)
-- [`earendil-works/pi` 原始碼導讀地圖](./reference/pi-source-map.md)
-- [三套 Harness 原始碼導讀入口](./reference/source-reading.md)
-- [PoC、採用與混用策略](./comparison/adoption-playbook.md)
-
-這一層的目標不是「會使用三套工具」，而是能自己回答：
-
-> **如果我要做新的 Agent Platform，哪些 abstraction 值得固定、哪些值得做 seam、哪些應該移出 core？**
-
-## 後面所有名詞都可以放進六層模型
-
-```mermaid
-flowchart TB
-  L1[① Client\n人、CLI、IDE、CI、自製 UI]
-  L2[② Harness / Runtime\n協調整個 Agent 工作流程]
-  L3[③ Model\n理解、推理、決策]
-  L4[④ Tools / Capabilities\nShell、File、MCP、Search...]
-  L5[⑤ Environment\nOS、Repo、Network、External Services]
-  L6[⑥ State & Policy\nHistory、Events、Permissions、Sandbox]
-
-  L1 <--> L2
-  L2 <--> L3
-  L2 <--> L4
-  L4 <--> L5
-  L2 <--> L6
-```
-
-遇到陌生名詞時先問：
-
-> **它是在做 Decision、Capability、Execution、Enforcement、State，還是 Integration？**
-
-通常就不會迷路。
-
-## 你現在只需要記住七句話
-
-1. **Model 是推理元件，Harness 是完整控制與執行系統。**
-2. **Agent 的核心是 Think → Act → Observe。**
-3. **Tool Call 是行動提案，不等於行動已經成功。**
-4. **Sandbox / Permission 是 capability boundary，不一定必須由同一層實作。**
-5. **Codex 強調完整、opinionated 的 Coding Agent Runtime。**
-6. **DeepSeek Harness 強調 Runtime 本身的 Plugin Composition。**
-7. **Pi 強調 Minimal Core 與深度 Self-extension。**
-
-帶著這七句話往下讀，就能把三套系統看成「同一問題的不同解法」，而不是三堆孤立 API。
+1. **Model 是推理元件；Harness 是控制與執行系統。**
+2. **Agent Loop 是 Think → Act → Observe 的 production 版本。**
+3. **State 不等於 Context。**
+4. **Tool Call 不等於 side effect 已發生。**
+5. **Extension surface 的形狀反映 Runtime philosophy。**
+6. **Security ownership 放在哪一層，是 Harness 架構差異的核心。**
+7. **Codex、DeepSeek、Pi 是同一組工程問題的三種不同答案。**

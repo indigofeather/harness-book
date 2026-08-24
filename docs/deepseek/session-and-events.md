@@ -4,37 +4,24 @@ title: Session、Events 與可追溯狀態
 
 # Session、Events 與可追溯狀態
 
-DeepSeek Harness 另一個很值得研究的地方，是它把 **append-only SessionEvent log** 放在 Runtime 的中心。
-
-先用一句話理解：
-
-> **不是「把聊天記錄存起來」，而是把模型真正看過、做過、收到過的重要事實記成可重建的事件流。**
+DeepSeek Harness 把 **append-only SessionEvent log** 放在 Runtime 的中心。這不是「把聊天存起來」，而是把會影響 trajectory 的 durable facts 記成可重建事件流。
 
 ## Session 不是單純 messages[]
 
-最小 chatbot 常把狀態寫成：
+Coding Agent 還有：
 
-```ts
-messages = [
-  {role: 'user', content: '...'},
-  {role: 'assistant', content: '...'},
-]
+```text
+turn / step lifecycle
+assistant output
+tool calls / results
+steering input
+approval audit
+context injection
+subagent activity
+errors / continuation
 ```
 
-但 Coding Agent 還有：
-
-- reasoning / response chunks；
-- tool calls；
-- tool results；
-- steering input；
-- subagent activity；
-- context injection；
-- turn / step lifecycle；
-- errors / continuation。
-
-所以單純 `messages[]` 很快就不夠。
-
-DeepSeek Harness 的方向是：
+所以 DeepSeek 把 durable trajectory 表成事件：
 
 ```mermaid
 flowchart TB
@@ -45,15 +32,14 @@ flowchart TB
   S --> A[assistant/message]
   S --> TC[tool/call]
   S --> TR[tool/result]
-  S --> ST[steering/message]
   S --> TE[turn/end]
 ```
 
 ## Model-visible means logged
 
-官方文件強調一個很重要的 invariant：**模型看得到的重要事實應可由 log 重建。**
+核心 invariant 可以理解成：
 
-這帶來一個直接好處：
+> **未來 Model decision 依賴的重要 durable fact，應能從 Session log 重建。**
 
 ```mermaid
 flowchart LR
@@ -63,79 +49,12 @@ flowchart LR
   LOG --> RES[Resume]
   LOG --> F[Fork]
   LOG --> RP[Replay]
-  LOG --> OBS[Telemetry / Analysis]
+  LOG --> OBS[Telemetry]
 ```
 
-也就是說，不需要每個功能各自維護一份「可能不一致的真相」。
+這降低「UI、Resume、Model Context 各自維護一份真相」造成的不一致。
 
-## Event Sourcing 的直覺
-
-一般 mutable state：
-
-```text
-目前狀態 = X
-```
-
-Event-sourced state：
-
-```text
-Event 1
-Event 2
-Event 3
-...
-→ fold / derive
-→ 目前狀態 X
-```
-
-例如：
-
-```text
-session/created
-turn/start
-user/message
-step/start
-assistant/message
- tool/call
- tool/result
-step/start
-assistant/message
-turn/end
-```
-
-你不只知道「最後長什麼樣」，還知道**怎麼走到這裡**。
-
-## 為什麼這對 Agent 特別重要？
-
-Coding Agent 的 debug 問題常是：
-
-> 為什麼它突然做了這個決定？
-
-如果只保存最後 assistant message，幾乎無法回答。
-
-如果有完整 trajectory：
-
-```mermaid
-flowchart TD
-  I[User Input] --> P1[Prompt Assembly]
-  P1 --> M1[Model Step 1]
-  M1 --> T1[Tool Call]
-  T1 --> R1[Tool Result]
-  R1 --> P2[Next Request]
-  P2 --> M2[Model Step 2]
-  M2 --> F[Final Answer]
-```
-
-就能問：
-
-- 當時模型看到什麼？
-- 哪個 Tool Result 改變了決策？
-- Context injection 從哪個 Plugin 來？
-- Retry 前後有什麼不同？
-- Fork 是從哪個 boundary 開始？
-
-## Session、Turn、Step
-
-DeepSeek 的粒度可以先理解成：
+## Session / Turn / Step
 
 ```text
 Session
@@ -145,168 +64,159 @@ Session
    │  ├─ tool/call
    │  └─ tool/result
    ├─ Step 2
-   │  ├─ model request
-   │  └─ ...
    └─ turn/end
 ```
 
 ### Session
 
-Durable trajectory / conversation 的整體邊界。
+整段 durable trajectory 的邊界。
 
 ### Turn
 
-一次 user objective / queued input 被處理到目前沒有 owed work 的工作單位。
+一批 input 被 claim，到目前沒有 owed work 的工作單位。
 
 ### Step
 
-一次 model request，以及這次 response 觸發的 tool actions。
+一次 Model Request，加上該 response 產生的 Tool phase。
 
-這和 Codex 的 `Thread → Turn → Item` 不完全一樣，但用途高度相關。
+## Event Sourcing 的直覺
 
-## Codex 與 DeepSeek 的資料模型差異
+Mutable snapshot 只告訴你：
 
-Codex 對產品 client 暴露的心智模型非常清楚：
-
-```mermaid
-flowchart TB
-  T[Thread]
-  T --> T1[Turn 1]
-  T --> T2[Turn 2]
-  T1 --> I1[Items]
-  T2 --> I2[Items]
+```text
+目前狀態 = X
 ```
 
-DeepSeek 更強調：
+Event-sourced state 保存：
 
-```mermaid
-flowchart TB
-  S[Session]
-  S --> E[Append-only Events]
-  E --> V1[Trajectory View]
-  E --> V2[Derived Context]
-  E --> V3[Resume / Fork]
+```text
+Event 1 → Event 2 → Event 3 → ...
+→ fold / projection
+→ X
 ```
 
-所以可以先把兩者理解成：
+這對 Agent 特別重要，因為 debug 時真正想知道的常是：
 
-| | Codex | DeepSeek Harness |
-|---|---|---|
-| 對外主要心智模型 | Thread / Turn / Item | Session / Turn / Step + Events |
-| 強項 | Client / UI domain model | Runtime traceability / replay |
-| State 觀點 | Product lifecycle primitives | Event-sourced durable facts |
+```text
+當時 Model 看到了什麼？
+哪個 Tool Result 改變決策？
+哪個 Plugin 注入 Context？
+哪次 approval 放行？
+哪個 Step 失敗或 retry？
+```
 
-不是二選一的唯一正解，而是 abstraction 重點不同。
+## Live Event 與 Durable Event 要分開
+
+不是所有 runtime event 都必須永久保存。
+
+可以分：
+
+```text
+Session Events
+→ durable facts
+
+Agent Events
+→ in-flight lifecycle / steering / status
+
+Capability Events
+→ tool / fs / telemetry boundary interception
+```
+
+這讓 UI 可以看到 live progress，但 persistent trajectory 仍維持較穩定 schema。
 
 ## Resume
 
-如果 durable session 可以從 event log 重建，Resume 就不是「把最後一句文字塞回去」。
-
-概念上：
-
 ```mermaid
 flowchart LR
-  STORE[Persistent Event Store] --> LOAD[Load Session Events]
-  LOAD --> DERIVE[Rebuild Runtime-visible State]
+  STORE[Persistent Event Store] --> LOAD[Load Events]
+  LOAD --> DERIVE[Rebuild Projection]
   DERIVE --> AGENT[Resume Agent]
 ```
 
-## Fork
+Resume 不是「把最後一句訊息塞回 prompt」，而是從 durable facts 重建 runtime-visible state。
 
-Fork 可以從既有 session 的某個 boundary 建立 child trajectory。
+## Fork
 
 ```mermaid
 flowchart TB
-  A[Original Session]
-  A --> E1[Events 1..N]
-  E1 --> B1[Branch A]
-  E1 --> B2[Branch B]
+  A[Shared Prefix]
+  A --> B1[Branch A]
+  A --> B2[Branch B]
 ```
 
-用途：
+Fork 很適合：
 
 - 比較兩種修法；
-- benchmark 不同 model；
+- benchmark 不同 model / policy；
 - 保留相同 exploration 前綴；
-- 研究不同 prompt / tool policy 對結果的影響。
+- 研究不同 plugin composition 對結果的影響。
 
-## Replay 與 Trajectory
-
-Event log 讓 UI 不只是顯示「聊天泡泡」。
-
-可以做：
+## Replay 不等於重做 Side Effects
 
 ```text
-filter by source
-inspect model request
-inspect tool call
-inspect injection
-inspect subagent event
-trace turn boundary
+Replay state / trajectory
+≠
+重新執行 git push / payment / deploy
 ```
 
-這對 Harness developer 特別重要，因為你想 debug 的常常不是最終答案，而是 Runtime 行為。
+Replay 的價值是重建、驗證、分析；外部 side effect 是否可重做仍需要 idempotency / simulation / explicit replay policy。
 
 ## Persistence Backend
 
-DeepSeek Harness 的 persistence abstraction 也符合 plugin-first 思維：storage 可以有不同 backend，例如 JSONL / SQLite 類型的 durable store。
-
-重點仍然是：
-
-> Consumer 不應把 Agent Runtime 綁死在某一種 storage implementation。
+Session service 可以依賴 persistence seam，而不是把 runtime 綁死在單一 backend。
 
 ```mermaid
 flowchart LR
-  S[Session Service] --> P[Persistence Seam]
+  S[Session Service] --> P[Persistence Contract]
   J[JSONL Backend] --> P
   Q[SQLite Backend] --> P
   X[Custom Backend] --> P
 ```
 
+## Compaction 與 Projection
+
+Event log 可以保留較完整 durable history，但 Model context 不需要每次把全部 events 原樣送回去。
+
+```text
+Durable Events
+→ Projection
+→ Compaction / Pruning
+→ Model-visible Messages
+```
+
+這再次說明：**State 不等於 Context。**
+
+## 放進三套共同座標
+
+這裡不做選型，只確認 abstraction 不同：
+
+| Harness | Durable state 主軸 | 最有辨識度的地方 |
+|---|---|---|
+| Codex | Thread / Turn / Item | product activity / rich client semantics |
+| DeepSeek Harness | SessionEvent log | replay / projection / invariant / audit |
+| Pi | JSONL Entry Tree | branch-native lineage / tree navigation |
+
+真正三方取捨放在比較章；DeepSeek 專章本身的重點仍是 event-sourced trajectory。
+
 ## Event Sourcing 的代價
 
-這種設計也不是沒有成本：
+- schema versioning 很重要；
+- log 可能膨脹；
+- compaction / snapshot 需要策略；
+- plugin-specific event ownership 要清楚；
+- replay correctness 需要 invariant / tests；
+- durable event 不等於 Model message。
 
-- event schema versioning 更重要；
-- log 可能快速膨脹；
-- compaction / snapshot strategy 需要設計；
-- plugin-specific event 必須有清楚 ownership；
-- replay 不等於可以安全重做外部 side effect。
+## 本章重點
 
-特別要區分：
-
-```text
-Replay state
-≠
-重新執行所有 Tool side effects
-```
-
-例如 `git push`、付款、production deploy，不能因為 replay log 就再做一次。
-
-## 對自製 Harness 的啟發
-
-即使你不使用 DeepSeek Harness，也很值得採用這個問題：
-
-> **每一個 Model-visible fact，是否都能找到來源與 durable representation？**
-
-如果答案是否定的，之後常會遇到：
-
-- resume 後行為不同；
-- debug 無法還原；
-- UI 和 model context 不一致；
-- fork 丟失重要狀態；
-- telemetry 與實際 execution 對不上。
-
-## 本章記住三件事
-
-```text
-1. Session 是 trajectory，不只是 messages[]。
-2. Durable fact 應進 append-only event log。
-3. Resume / Fork / Replay / Context reconstruction 可以共享同一份真相來源。
-```
+1. **Session 是 trajectory，不只是 messages[]。**
+2. **Turn / Step 提供 Agent Loop 的 durable lifecycle vocabulary。**
+3. **Model-visible durable facts 應能由 log 重建。**
+4. **Resume、Fork、Replay、UI projection 可以共享同一份 durable source of truth。**
+5. **Replay state 與重新執行外部 side effect 必須分開。**
 
 ## 官方來源
 
 - [Core subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md)
+- [Session subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)
 - [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
-- [DeepSeek Harness official page](https://deepseek.com/harness/en/)

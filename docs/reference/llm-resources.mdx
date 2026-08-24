@@ -8,7 +8,7 @@ title: AI / LLM 資源
 
 ## 全站 LLM 檔案
 
-`llms.txt` 是教材索引與 Sidebar reading order；`llms-full.txt` 則包含依 Sidebar 順序合併的完整教材正文。
+`llms.txt` 是教材索引與完整 Sidebar reading order；`llms-full.txt` 則包含依 Sidebar 順序合併的完整教材正文。
 
 <div style={{display: 'flex', gap: '0.75rem', flexWrap: 'wrap', margin: '1rem 0 1.5rem'}}>
   <button
@@ -25,16 +25,17 @@ title: AI / LLM 資源
   </button>
 </div>
 
-這兩個檔案由 `docusaurus-plugin-llms` 在 production build 的 `postBuild` 階段產生，因此一般 `docusaurus start` 開發伺服器不一定會存在這兩個輸出；請以 `npm run build` 後的產物或正式部署站為準。
+這兩個檔案由 `docusaurus-plugin-llms` 在 production build 的 `postBuild` 階段產生，因此一般 `docusaurus start` 開發伺服器不一定會存在；請以 `bun run build` 後的產物或正式部署站為準。
 
 ## 單頁 Markdown
 
-每篇教材頁也會輸出對應的純 Markdown 版本，例如：
+每篇 canonical 教材頁也會輸出對應的純 Markdown 版本，例如：
 
 ```text
 /docs/intro.md
 /docs/architecture/system-map.md
-/docs/deepseek/overview.md
+/docs/deepseek/model-and-agent-loop.md
+/docs/pi/agent-loop-and-tools.md
 /docs/comparison/architecture-comparison.md
 ```
 
@@ -49,4 +50,6 @@ title: AI / LLM 資源
 
 ## Sidebar 與 LLM reading order
 
-`llms.txt` 與 `llms-full.txt` 的文件順序直接取自本站 Sidebar，因此新增、刪除或調整教材章節後，下一次 production build 會同步更新 LLM reading order。
+`llms.txt` 與 `llms-full.txt` 的文件順序直接取自本站 Sidebar。三套 Harness 的完整導讀、三套 Labs、比較章、實務章與三套 Source Map 都會使用同一份 canonical order。
+
+`includeOrder` 會依實際來源檔案解析 `.md` / `.mdx`，避免把 MDX 頁面錯當成不存在的 `.md` source。

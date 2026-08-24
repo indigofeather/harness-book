@@ -1,360 +1,364 @@
 ---
-title: Thread、Turn、Item 與 Lifecycle
+title: State Models 與 Lifecycle：三套 Harness 怎麼記住工作
 ---
 
-# Thread、Turn、Item 與 Lifecycle
+# State Models 與 Lifecycle：三套 Harness 怎麼記住工作
 
-如果你把 Codex 當成一個會工作的系統，就需要回答一個問題：
+Agent 如果只能完成一次無狀態 function call，就很難稱為完整工作系統。
 
-> **它怎麼記錄「這段工作」？**
+Production Harness 至少要回答：
 
-App Server 用三個最重要的資料層次來描述：
+```text
+這段工作如何被識別？
+一次任務從哪裡開始、在哪裡結束？
+Tool / Model 活動怎麼記錄？
+怎麼 resume？
+怎麼 fork / branch？
+哪些資料要 durable？
+Model 下一輪看到的 context 怎麼從 state 重建？
+```
+
+Codex、DeepSeek Harness、Pi 在這題給了三個非常值得並讀的答案。
+
+## 先看三種資料模型
+
+### Codex：Thread → Turn → Item
 
 ```mermaid
 flowchart TB
-  T[Thread\n整段可延續的工作對話]
-  U[Turn\n一次使用者要求到完成]
-  I[Item\n過程中的每一個事件]
-  T --> U --> I
+  T[Thread] --> U1[Turn 1]
+  T --> U2[Turn 2]
+  U1 --> I1[Item]
+  U1 --> I2[Item]
+  U2 --> I3[Item]
 ```
 
-最簡單的比喻是：
+直覺上：
 
 ```text
-Thread = 一本工作筆記
-Turn   = 筆記裡的一次任務
-Item   = 這次任務中的每一筆事件
+Thread = 一整段可延續工作
+Turn   = 一次 user request 到完成 / 失敗 / 中斷
+Item   = Turn 內可被產品呈現的細粒度 activity
 ```
 
-## 先看一個完整例子
+這個模型非常適合 Rich Client：UI 可以自然顯示 message、reasoning、shell、file edit、MCP invocation 等活動。
 
-你先說：
-
-> 幫我理解這個專案。
-
-之後又說：
-
-> 現在幫我修登入 bug。
-
-這是同一個 Thread 裡的兩個 Turns。
-
-```text
-Thread: codex-harness-work
-│
-├─ Turn 1:「先理解專案」
-│  ├─ Item: user message
-│  ├─ Item: file search
-│  ├─ Item: file read
-│  ├─ Item: reasoning
-│  └─ Item: agent message
-│
-└─ Turn 2:「修登入 bug」
-   ├─ Item: user message
-   ├─ Item: shell command
-   ├─ Item: shell output
-   ├─ Item: file edit
-   ├─ Item: test command
-   └─ Item: agent message
-```
-
-## Thread：整段工作關係
-
-Thread 是一段可以延續的 agent conversation。
-
-它不是單純「聊天視窗」，而是跨 Turn 的工作容器。
-
-通常會包含：
-
-- history；
-- settings；
-- project / environment context；
-- fork / resume 關係；
-- persistence metadata。
-
-概念上：
-
-```mermaid
-flowchart LR
-  A[Start Thread] --> B[Turn 1]
-  B --> C[Turn 2]
-  C --> D[Turn 3]
-  D --> E[Resume later]
-```
-
-常見操作：
-
-- `thread/start`：新建 Thread。
-- `thread/resume`：重新載入既有 Thread。
-- `thread/fork`：從既有歷史分支。
-- `thread/read` / `thread/list`：讀取與列舉。
-
-## Turn：一次「工作交易」
-
-Turn 是：
-
-> **從一個 user input 開始，到 agent 完成、失敗或被中斷為止。**
-
-例如：
-
-```text
-User: 修掉這個 bug
-↓
-搜尋檔案
-↓
-讀程式碼
-↓
-跑測試
-↓
-修改檔案
-↓
-再跑測試
-↓
-Agent: 完成
-```
-
-這全部仍然只是一個 Turn。
-
-```mermaid
-flowchart LR
-  U[User Input] --> A[Tool]
-  A --> B[Model]
-  B --> C[Tool]
-  C --> D[Model]
-  D --> E[Final Message]
-  subgraph OneTurn[同一個 Turn]
-    A
-    B
-    C
-    D
-    E
-  end
-```
-
-## Item：Turn 裡真正發生的每件事
-
-Item 是最細粒度的可觀察工作單位。
-
-可能包括：
-
-- user message；
-- agent message；
-- reasoning；
-- shell command；
-- shell output；
-- file edit；
-- MCP invocation；
-- tool result。
-
-為什麼不只叫 Message？
-
-因為 coding agent 很多重要活動根本不是自然語言訊息。
+### DeepSeek Harness：Session → Turn → Step → SessionEvent
 
 ```mermaid
 flowchart TB
-  T[Turn]
-  T --> I1[User Message]
-  T --> I2[Reasoning]
-  T --> I3[Shell Command]
-  T --> I4[Shell Output]
-  T --> I5[File Edit]
-  T --> I6[Agent Message]
+  S[Session] --> T[Turn]
+  T --> P1[Step 1]
+  T --> P2[Step 2]
+  S --> E[Append-only SessionEvents]
+  P1 -.durable facts.-> E
+  P2 -.durable facts.-> E
 ```
 
-## 為什麼要分成三層？
+核心思想是：
 
-如果只有一條 message array，很多 production 問題會很難處理。
+> **Durable state 以 append-only events 為 source of truth，再由 projection 重建 message history、UI、resume 與 query。**
 
-### 問題 1：Agent 跑到哪裡了？
+DeepSeek 還把 Step 明確定義為一次 Model Request 與該 request 產生的 Tool Calls。
 
-有 Item 才能顯示：
-
-```text
-Searching files...
-Running tests...
-Editing auth.ts...
-```
-
-### 問題 2：怎麼只中斷這次任務？
-
-Turn 提供清楚 boundary。
-
-```mermaid
-flowchart LR
-  T[Thread] --> A[Turn 1 completed]
-  T --> B[Turn 2 running]
-  T --> C[Turn 3 future]
-  X[Interrupt] --> B
-```
-
-中斷 Turn 2，不代表整個 Thread 要刪掉。
-
-### 問題 3：怎麼量測成本？
-
-Turn 可以當 telemetry 邊界：
-
-- latency；
-- token usage；
-- tool count；
-- failure status。
-
-### 問題 4：怎麼 Fork？
-
-Thread + Turn boundary 可以讓你說：
-
-> 從 Turn 3 之前的狀態分一條新路。
-
-## Lifecycle：App Server Client 怎麼驅動這些東西？
-
-典型流程：
-
-```mermaid
-sequenceDiagram
-  participant C as Client
-  participant A as App Server
-
-  C->>A: initialize
-  A-->>C: initialize response
-  C->>A: initialized
-
-  C->>A: thread/start
-  A-->>C: thread object
-  A-->>C: thread/started
-
-  C->>A: turn/start
-  A-->>C: turn object
-  A-->>C: turn/started
-
-  A-->>C: item/started
-  A-->>C: item/*/delta
-  A-->>C: item/completed
-
-  A-->>C: turn/completed
-```
-
-這表示 App Server 不是簡單 HTTP chatbot API，而是一套有 lifecycle 與 streaming events 的 integration protocol。
-
-## Steering：Turn 還在跑時，User 又說話
-
-假設 Agent 正在改程式，你突然補充：
-
-> 不要改資料庫 schema。
-
-此時系統可能需要：
-
-```mermaid
-flowchart TD
-  A[Turn Running] --> B[Current Loop]
-  U[New User Input] --> Q[Queue / Steer]
-  Q --> B
-  B --> C[後續 action 使用新限制]
-```
-
-這說明 Thread runtime 必須支援**雙向協調**，不是只會等「一問一答」。
-
-## Fork：從同一段歷史分出另一條路
-
-Fork 很像 Git branch 的概念。
-
-```mermaid
-flowchart LR
-  T1[Turn 1] --> T2[Turn 2]
-  T2 --> T3A[方案 A]
-  T2 --> T3B[方案 B]
-```
-
-用途包括：
-
-- 同一問題試兩種修法；
-- 保留已完成的 repository exploration；
-- 多 agent 分支研究；
-- UI 中「從這一步重來」。
-
-## Durable vs Ephemeral
-
-Thread 不一定都要永久保存。
+### Pi：Session JSONL Entry Tree
 
 ```mermaid
 flowchart TB
-  T[Thread] --> D[Durable]
-  T --> E[Ephemeral]
-  D --> D1[可 Resume / Audit / 長期工作]
-  E --> E1[一次性任務 / CI / 敏感操作]
+  H[Session Header] --> A[Entry A]
+  A --> B[Entry B]
+  B --> C[Entry C]
+  B --> D[Entry D]
+  D --> E[Entry E]
 ```
 
-### Durable Thread
+每個 entry 有：
 
-適合：
+```text
+id
+parentId
+```
 
-- 使用者長期工作；
-- UI resume；
-- audit；
-- project history。
+所以 persisted session 本身就是 tree，而不是先有線性 history、再由 UI 模擬 branch。
 
-### Ephemeral Thread
+## 三套 State Model 的穩定中心不同
 
-適合：
+| 問題 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| 最主要 durable boundary | Thread / runtime history | Session | Session JSONL file |
+| 一次 user work | Turn | Turn | active branch 上的一段 agent work |
+| Model request 粒度 | Turn 內部多輪 request | Step 是正式 lifecycle primitive | Agent iteration，不要求對外固定成 Step |
+| 細粒度活動 | Item / runtime events | SessionEvent + live Agent events | Session entries + Agent events |
+| UI model | Thread / Turn / Item 很直接 | 由 event projection derive | TUI 直接映射 active session / tree |
+| Branch | Thread fork / history semantics | Session lineage / fork | `id / parentId` tree 原生 |
+| Replay | runtime history / rollout | event sourcing 是核心 | 沿 entry lineage 重建 context |
 
-- CI；
-- 一次性子任務；
-- 不希望持久化的敏感情境。
+三者不是同一套命名換字而已，而是不同 product / runtime priority 的反映。
 
-兩者最好共用同一套 agent loop，只替換 persistence policy。
+## Codex：Thread / Turn / Item 為什麼適合產品 UI？
 
-## Thread / Turn / Item 和 Context 有什麼關係？
+假設同一個 Thread 裡有兩個工作：
 
-這三個是**保存與描述工作歷史的 domain model**。
+```text
+Thread
+├─ Turn 1：理解專案
+│  ├─ user message
+│  ├─ file search
+│  ├─ file read
+│  └─ agent message
+└─ Turn 2：修登入 bug
+   ├─ shell command
+   ├─ file edit
+   ├─ test run
+   └─ agent message
+```
 
-Context 則是：
+UI 很容易直接回答：
 
-> 從這些歷史與設定中，挑出本次 Model Call 需要看到的內容。
+- 目前是哪個 Turn？
+- 哪個 Item 正在執行？
+- 哪些 Tool / Edit 已完成？
+- 要中斷的是本次 Turn 還是整個 Thread？
+
+App Server 也因此能提供 thread start/resume/fork/read/list、turn start/steer 與 item lifecycle 等 client-friendly protocol。
+
+這是 **product activity model** 的強項。
+
+## DeepSeek：為什麼要把 Event Log 放在核心？
+
+DeepSeek 的重要 invariant 可以先記成：
+
+> **Model-visible durable fact 必須能由 Session Log 重建。**
+
+典型 event stream 可能是：
+
+```text
+turn/start
+user/message
+step/start
+request/header
+assistant/message
+tool/call
+tool/result
+step/end
+turn/end
+```
+
+UI、context、resume、query 都不必成為第二套獨立真相。
 
 ```mermaid
 flowchart LR
-  S[Stored Thread / Turns / Items] --> C[Context Builder]
-  C --> M[Model Context Snapshot]
+  E[Session Events] --> M[Message Projection]
+  E --> U[UI Projection]
+  E --> R[Resume]
+  E --> Q[Query / Trace]
+  E --> A[Audit]
+```
+
+這是 **event-sourced trajectory model** 的強項。
+
+## Pi：為什麼 Session 直接做成 Tree？
+
+假設原本走：
+
+```text
+A → B → C → D
+```
+
+在 B 回頭嘗試另一條路：
+
+```text
+        C → D
+       /
+A → B
+       \
+        E → F
+```
+
+Pi 不需要把舊路徑複製成另一份 conversation；entry 的 parent pointer 已經保留 lineage。
+
+因此 `/tree`、fork、branch summary、context rebuild 都可以直接建立在 persisted tree 上。
+
+這是 **branch-native session model** 的強項。
+
+## Live Events 與 Durable Events 不一定相同
+
+Agent Runtime 需要同時處理：
+
+```text
+Live Event
+→ token delta
+→ command started
+→ progress
+→ UI status
+
+Durable Fact
+→ user message
+→ accepted assistant message
+→ tool call / result
+→ compaction
+→ approval decision
+```
+
+如果把所有 live delta 都永久寫入 state，資料會非常吵；但如果完全不保存重要 facts，又無法 resume / audit。
+
+### Codex
+
+Item / runtime notifications 讓 client 能看到進度，durable history 由 Thread runtime 管理。
+
+### DeepSeek
+
+明確分 Session events、Agent events、Capability events；durable 與 live semantics 分得最清楚。
+
+### Pi
+
+Agent / Extension events 提供 live lifecycle，而 Session Entries 保存需要跨 resume 保留的 facts；Extension 也能 append custom durable entries。
+
+## Resume 的真正問題不是「重新打開聊天」
+
+Resume 必須重建至少四件事：
+
+```text
+durable history
+current branch / lineage
+model / runtime configuration
+下一輪 Model 需要的 context projection
+```
+
+### Codex
+
+```text
+Thread Store / rollout / history
+→ load thread
+→ rebuild runtime context
+→ continue work
+```
+
+### DeepSeek
+
+```text
+Session persistence
+→ load SessionEvents
+→ validate invariants
+→ derive messages / projections
+→ resume Agent
+```
+
+### Pi
+
+```text
+SessionManager.open / continueRecent
+→ parse JSONL tree
+→ select branch
+→ buildSessionContext
+→ restore model / thinking metadata
+→ AgentSession
+```
+
+## Fork / Branch 也有不同語意
+
+### Codex
+
+更接近從 product Thread / history boundary 建立另一段工作。
+
+### DeepSeek Harness
+
+Fork 可以建立新的 Session lineage，並用 durable event / seed boundary 重建 child trajectory。
+
+### Pi
+
+Branch 是同一份 JSONL tree 的天然一部分；`/tree` 甚至可以直接在既有 branch 間切換。
+
+如果產品非常重視「從任何一個歷史節點回去試另一條路」，Pi 的 data model 很值得研究。
+
+## Compaction 是 State Model 的一部分
+
+Context 超過 window 時，不只是刪 messages。
+
+需要回答：
+
+```text
+壓縮結果是否 durable？
+哪些舊 facts 被 shadow？
+resume 後如何知道 cut point？
+branch knowledge 是否會消失？
+```
+
+### Codex
+
+Compaction 由 production runtime 管理，目標是維持長任務 continuity。
+
+### DeepSeek
+
+Compaction 是正式 capability family，可以由 plugin/provider 決定 summarization / pruning。
+
+### Pi
+
+Compaction 會建立 durable compaction entry；另外還有 branch summarization，專門保存離開某條探索路徑時的重要知識。
+
+## State 與 Context 的關係
+
+永遠記住：
+
+```mermaid
+flowchart LR
+  S[Stored State] --> P[Projection]
+  P --> C[Model Context]
 ```
 
 所以：
 
-- Persistence 不等於 Context。
-- 保存所有 Item，不代表每次都要把所有 Item 送給 Model。
+- 保存完整 trajectory，不代表每次都送全部 trajectory。
+- UI projection 不一定等於 Model projection。
+- Live event 不一定要 durable。
+- Compaction 可以改變 projection，而不必破壞完整 lineage / audit model。
 
-這是很重要的架構分離。
+## 如果你自己做 Harness，先決定哪一種 Source of Truth
 
-## 常見誤解
+常見選擇：
 
-### 誤解 1：Thread = 一次 User Request
+### Product-object centric
 
-不是，那是 Turn。
+```text
+Conversation / Thread objects
+→ Turns / Items
+```
 
-### 誤解 2：Turn = 一次 Model Call
+優點：client-friendly。
 
-不是。一個 Turn 可以有很多 Model Calls 和 Tools。
+### Event-sourced
 
-### 誤解 3：Item = Chat Message
+```text
+Append-only events
+→ derive everything else
+```
 
-不只。Tool、Edit、Reasoning 都可以是 Item。
+優點：replay / audit / invariants 強。
 
-### 誤解 4：保存 History = 全部放回 Context
+### Branch-native log
 
-不是。Persistence 和 Context projection 是兩件事。
+```text
+Entries + parent pointers
+→ active branch projection
+```
+
+優點：fork / tree navigation 自然。
+
+也可以混合，但必須明確指定哪一層才是 source of truth，否則 persistence、UI 與 Model history 很容易 drift。
 
 ## 本章只要記住
 
-```text
-Thread = 整段可延續工作
-Turn   = 一次任務
-Item   = 任務中的每個事件
-```
+1. **State Model 是 Harness architecture，不只是資料庫格式。**
+2. **Codex 的 Thread / Turn / Item 很適合產品 activity model。**
+3. **DeepSeek 的 SessionEvent 很適合 replay、audit、projection 與 invariant。**
+4. **Pi 的 JSONL Entry Tree 把 branch / fork 直接做進 persisted structure。**
+5. **Durable State、Live Events、UI Projection、Model Context 是四個不同概念。**
 
-再加一句：
+下一步開始進入第一套完整 case study：Codex。
 
-> **State Store 負責保存，Context Builder 負責挑選 Model 這次要看到什麼。**
+## 官方延伸閱讀
 
-理解這一點後，就可以往下看 Codex Harness 的真正系統架構。
-
-## 延伸閱讀
-
-- [App Server docs](https://learn.chatgpt.com/docs/app-server)
-- [`codex-rs/app-server/README.md`](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md)
-- [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/main/codex-rs/core/src/codex_thread.rs)
+- [Codex App Server](https://developers.openai.com/codex/app-server)
+- [DeepSeek Session subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/session/README.md)
+- [Pi Sessions](https://pi.dev/docs/latest/sessions)
+- [Pi Session File Format](https://pi.dev/docs/latest/session-format)

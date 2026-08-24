@@ -1,21 +1,23 @@
 ---
-title: Agent Loop：一次 Turn 到底怎麼跑
+title: Agent Loop：一次任務到底怎麼跑
 ---
 
-# Agent Loop：一次 Turn 到底怎麼跑
+# Agent Loop：一次任務到底怎麼跑
 
-如果 Harness 是 Codex 的控制中心，那 **Agent Loop 就是控制中心反覆執行的主流程**。
+如果 Harness 是控制中心，**Agent Loop 就是控制中心反覆執行的主流程**。
 
-先不要想 API。最簡單的版本只有三步：
+最簡單的版本只有三步：
 
 ```mermaid
 flowchart LR
-  A[Think\n判斷下一步] --> B[Act\n使用工具]
+  A[Think\n判斷下一步] --> B[Act\n提出 Action / Tool]
   B --> C[Observe\n取得真實結果]
   C --> A
 ```
 
-只要任務還沒完成，這個循環就繼續。
+只要任務還沒完成，這個循環就會繼續。
+
+這個模型不屬於 Codex、DeepSeek Harness 或 Pi 任一套產品；三套系統真正不同的是：**誰擁有 loop、每輪的 boundary 怎麼定義、結果如何保存、哪些步驟可以被替換。**
 
 ## 用「修一個 Bug」理解 Agent Loop
 
@@ -23,7 +25,7 @@ flowchart LR
 
 > 登入一直失敗，幫我找原因並修好。
 
-Codex 可能實際做的是：
+一個 coding agent 可能實際做的是：
 
 ```text
 Think   → 先找登入入口
@@ -31,361 +33,315 @@ Act     → 搜尋 login / auth
 Observe → 找到 src/auth/login.ts
 
 Think   → 讀這個檔案
-Act     → read file
+Act     → read
 Observe → 發現 expiry 計算可疑
 
 Think   → 找相關測試
-Act     → search + run tests
+Act     → search + test
 Observe → 測試重現錯誤
 
 Think   → 修改邏輯
-Act     → apply patch
+Act     → edit / patch
 Observe → 修改成功
 
 Think   → 驗證
-Act     → npm test
+Act     → run tests
 Observe → tests passed
 
 Think   → 任務完成
 Act     → 回覆使用者
 ```
 
-Model 沒有一次知道所有答案，而是在**真實結果回來後重新判斷**。
+Model 不是一次知道所有答案，而是在**新的 observation 回來後重新決策**。
 
-這就是 Agent 和普通聊天模型最大的差別之一。
-
-## 一次 User Message 不等於一次 Model Call
-
-這點非常重要。
-
-很多人會直覺認為：
-
-```text
-User → Model → Answer
-```
-
-Coding agent 更接近：
+## 一次 User Request 通常不等於一次 Model Call
 
 ```mermaid
 flowchart LR
   U[User] --> M1[Model Call 1]
-  M1 --> T1[Tool Call]
+  M1 --> T1[Tool / Capability]
   T1 --> M2[Model Call 2]
-  M2 --> T2[Tool Call]
+  M2 --> T2[Tool / Capability]
   T2 --> M3[Model Call 3]
-  M3 --> F[Final Answer]
+  M3 --> F[Final Result]
 ```
 
-所以：
+因此更精確的說法是：
 
-> **一個 Turn 可以包含很多次 Model Call 與 Tool Call。**
+> **一次使用者工作單位，可以包含多次 Model Request、Tool Execution 與 State Update。**
 
-## 正式一點：Harness 每輪做什麼？
+至於這個工作單位叫 Turn、Session interval、還是其他名稱，要看 Harness 的資料模型。
 
-可以拆成六個步驟。
+## Harness 每一輪至少做六件事
 
 ```mermaid
 flowchart TD
   A[1. Build Context] --> B[2. Call Model]
-  B --> C{3. Model 回傳什麼？}
-  C -->|Final message| F[6. Complete Turn]
-  C -->|Tool call| D[4. Authorize + Execute]
-  D --> E[5. Append Tool Result]
+  B --> C{3. Model output}
+  C -->|Final result| F[6. Complete work unit]
+  C -->|Action / tool| D[4. Authorize + Execute]
+  D --> E[5. Persist / Append Observation]
   E --> A
 ```
 
 ### 1. Build Context
 
-Harness 先組出模型這一輪能看到的世界：
+組出這一輪 Model 可見的 world snapshot：
 
 ```text
-Instructions
-+ Project guidance
-+ AGENTS.md
-+ Skill metadata
-+ Tool schemas
-+ Environment context
-+ History
-+ Current user input
+instructions
+project / runtime guidance
+tool schemas
+selected history
+current user input
+runtime context
 ```
 
 ### 2. Call Model
 
-Harness 把 context 與 tools 送給 model provider。
+透過 model provider / adapter 發出 request，並處理 streaming、usage、error、cancel。
 
-### 3. Model 決定下一步
+### 3. Interpret Model Output
 
-Model 可能回：
+Model 可能產生：
 
-- 一段最終回答；
-- 一個 shell tool call；
-- 一個 file read；
-- 一個 MCP call；
-- 其他可用 action。
+- 最終文字；
+- tool call；
+- 多個 tool calls；
+- structured output；
+- reasoning / intermediate events。
 
 ### 4. Authorize + Execute
 
-如果是 tool call，Harness 先檢查：
+Action 不會因為 Model 產生了它就自動執行。
 
 ```mermaid
 flowchart LR
-  A[Tool Call] --> V[Validate Args]
-  V --> P[Policy / Sandbox]
-  P -->|Allowed| E[Execute]
-  P -->|Need approval| R[Request Approval]
-  P -->|Denied| D[Return Denial]
-  R -->|Approved| E
-  R -->|Denied| D
+  A[Action] --> V[Validate]
+  V --> P{Policy / Trust}
+  P -->|allow| E[Execute]
+  P -->|ask| Q[Approval]
+  P -->|deny| D[Denial]
+  Q -->|approve| E
+  Q -->|reject| D
 ```
 
-然後才真的執行。
+### 5. Persist / Append Observation
 
-### 5. Append Tool Result
-
-執行結果會變成新的 context item。
+執行結果要回到 Harness state，之後才能被下一輪 context 使用。
 
 例如：
 
 ```text
-Tool call: npm test
-Tool result:
+Action: npm test
+Observation:
   exit_code: 1
   stderr: expected 200, received 401
 ```
 
-Model 下一輪才會看到這個真實結果。
+### 6. Complete Work Unit
 
-### 6. Complete Turn
+當沒有更多待執行工作、或 lifecycle 進入 completed / failed / cancelled，這次工作才真正結束。
 
-當 Model 回傳正常 assistant message，且沒有待執行 action，這個 turn 才結束。
-
-## Tool Call 只是「行動提案」
-
-模型可能輸出：
-
-```json
-{
-  "type": "function_call",
-  "name": "shell",
-  "arguments": {"command": "npm test"}
-}
-```
-
-這不代表 `npm test` 已經跑了。
-
-真正流程是：
+## Tool Call 是「提案」，不是現實
 
 ```mermaid
 sequenceDiagram
   participant M as Model
   participant H as Harness
   participant P as Policy
-  participant T as Tool
+  participant T as Tool / Executor
 
-  M->>H: 我想執行 npm test
-  H->>P: 允許嗎？
-  P-->>H: Allow
-  H->>T: Execute
+  M->>H: propose npm test
+  H->>P: authorize
+  P-->>H: allow
+  H->>T: execute
   T-->>H: exit=1 + logs
-  H->>M: 這是真實結果
+  H->>H: persist observation
+  H->>M: next context contains real result
 ```
 
-這也是為什麼 Harness 是安全邊界的一部分。
+這一層分離是安全、retry、audit、remote execution 的基礎。
 
-## Codex 的完整 Turn 長什麼樣？
+## 三套 Harness 如何落實同一個 Loop？
 
-接近實際 runtime 的概念流程：
+### Codex：Loop 位於產品化 Runtime 中心
 
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Harness
-  participant Model
-  participant Tool
-
-  Client->>Harness: turn/start + user input
-  Harness->>Harness: assemble context + tools
-  Harness->>Model: response request
-  Model-->>Harness: streaming events
-  Model-->>Harness: tool call
-  Harness->>Harness: policy / approval
-  Harness->>Tool: execute(args)
-  Tool-->>Harness: tool output
-  Harness->>Harness: append call + output
-  Harness->>Model: next response request
-  Model-->>Harness: assistant message
-  Harness-->>Client: turn/completed
-```
-
-## 為什麼 Context 常是 Append-only？
-
-假設第一輪 context 是：
+可以先用：
 
 ```text
-[A B C D]
+Thread
+→ Turn
+→ model / tool 往返
+→ Items / state updates
+→ Turn completed
 ```
 
-工具結果回來後，最理想的下一輪是：
+理解。
+
+Codex 的重點是把 loop 和 tool execution、sandbox、approval、repository workflow、client events 深度整合成 production coding runtime。
+
+### DeepSeek Harness：Loop 本身就是 Capability Seam
+
+DeepSeek 明確把：
 
 ```text
-[A B C D E F]
+Turn
+→ Step
+→ model request
+→ tool calls
+→ SessionEvents
 ```
 
-再下一輪：
+做成 lifecycle vocabulary。
+
+其中：
 
 ```text
-[A B C D E F G H]
+Step = 一次 model request + 該 request 產生的 tool calls
 ```
 
-```mermaid
-flowchart LR
-  R1[Round 1\nA B C D] --> R2[Round 2\nA B C D + E F]
-  R2 --> R3[Round 3\nA B C D E F + G H]
-```
+而 `agent-loop` 本身可作為 service / plugin 被替換。這讓「保持其他 capability 不變，只換 loop」成為一級架構實驗。
 
-前面穩定、後面追加，有利於 prompt caching。
+### Pi：低階 Agent Loop + 高階 AgentSession
 
-如果 Harness 每輪都重新排序：
+Pi 把責任分成兩層：
 
 ```text
-[A C B D E F]
+pi-agent-core Agent
+→ model / tool iteration
+
+AgentSession
+→ session、resources、extensions、compaction、UI / lifecycle
 ```
 
-即使意思相近，也可能讓 prefix cache 失效。
+所以 loop 不必同時擁有所有 coding-agent product behavior；很多高階行為由 `AgentSession` 與 Extension Runtime 補上。
 
-所以 Context Builder 的工程目標通常是：
+## 一張三方 Loop 對照
 
-- deterministic；
-- stable prefix；
-- append new events；
-- 必要時才 compact。
+| 問題 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Loop 中心 | `codex-core` runtime | `agent-loop` service | `pi-agent-core` Agent |
+| 高階 lifecycle | Thread / Turn / Items | Session / Turn / Step / Events | AgentSession / Session Entries |
+| Loop 可替換性 | 有限、產品語意較固定 | 明確 capability seam | 可直接使用低階 Agent，也可在 Session / Extension 層改行為 |
+| Tool policy | 深度接 sandbox / approval | tool events / guards / approval / sandbox providers | extension interception + tool implementation + external boundary |
+| State append | runtime / thread state | durable SessionEvent log | JSONL Session Entry Tree |
 
-## 三種常見 Failure，不要混在一起
+不要把這張表理解成誰比較先進；它是在回答：**loop responsibility 被放在哪一層。**
 
-```mermaid
-flowchart TD
-  F[Turn 失敗] --> M[Model Failure]
-  F --> T[Tool Failure]
-  F --> P[Policy Failure]
-  M --> M1[Rate limit / network / invalid response]
-  T --> T1[exit non-zero / timeout / conflict]
-  P --> P1[rule denied / approval rejected / permission insufficient]
+## Context 為什麼常希望穩定成長？
+
+如果 provider 支援 prefix caching，常見的有效策略是讓穩定內容維持 deterministic，新的 observations 往後追加：
+
+```text
+Round 1: [A B C D]
+Round 2: [A B C D E F]
+Round 3: [A B C D E F G H]
 ```
 
-### Model failure
+但「append-only」不是所有 Harness 的唯一資料模型。
 
-例如：
+- Codex 會管理 runtime history / compaction；
+- DeepSeek 從 SessionEvent derive model-visible projection；
+- Pi 從目前 branch 的 Session Entries 建 context，並可插入 compaction / branch summary。
 
-- rate limit；
-- connection reset；
-- provider unavailable。
+真正不變的原則是：
 
-通常是 transport / provider 層問題。
+> **Persisted history 與 Model 這一輪看到的 projection，不必是同一份資料結構。**
 
-### Tool failure
+## Steering / Concurrent Input
 
-例如：
-
-- test exit code 1；
-- MCP timeout；
-- file conflict。
-
-很多時候應把 error 當成 observation 再交回 Model，讓它修正。
-
-### Policy failure
-
-例如：
-
-- command 被禁止；
-- network 不允許；
-- approval 被拒絕。
-
-這不是 Tool 壞掉，而是系統**刻意不讓 action 發生**。
-
-## Steering：Agent 工作到一半，你又補充一句
-
-假設 Codex 正在修改程式時，你說：
-
-> 先不要改 DB schema。
-
-成熟 Harness 不能假設「只有 Agent 停下來後 User 才會說話」。
-
-概念上會變成：
+成熟 Agent 不能假設只有「問一句、等完全做完、再問下一句」。
 
 ```mermaid
 flowchart TD
-  A[Turn Running] --> B[Tool / Model Loop]
-  U[New User Input] --> Q[Input Queue / Steering]
-  Q --> B
-  B --> C[後續行動考慮新限制]
+  A[Work running] --> L[Agent Loop]
+  U[New user input] --> Q[Queue / Steering / Interaction]
+  Q --> L
+  L --> N[後續 decision 納入新限制]
 ```
 
-所以 coding agent 更接近一個**持續協調的 runtime**，不只是 chatbot request-response。
+不同 Harness 的介面不同，但設計問題相同：
 
-## 最小可用 Harness 偽碼
+- 新輸入何時生效？
+- 正在跑的 tool 要不要取消？
+- 新 restriction 是否要寫入 durable state？
+- client 如何知道目前狀態？
 
-看懂概念後，再看程式就容易很多：
+## 三類 Failure 不要混在一起
+
+```mermaid
+flowchart TD
+  F[Agent work failed] --> M[Model / Transport]
+  F --> T[Tool / Execution]
+  F --> P[Policy / Trust]
+  F --> S[State / Lifecycle]
+```
+
+### Model / Transport Failure
+
+例如 rate limit、provider unavailable、stream invalid。
+
+### Tool / Execution Failure
+
+例如 test exit 1、process timeout、file conflict。
+
+很多時候這類 failure 本身應成為 observation，讓 Model 決定下一步。
+
+### Policy / Trust Failure
+
+例如 action 被 deny、approval rejected、sandbox unavailable、project untrusted。
+
+這是系統刻意阻止 side effect，不等於 tool implementation 壞掉。
+
+### State / Lifecycle Failure
+
+例如 durable event 不完整、resume 後 context 不一致、branch lineage 損壞。
+
+這類問題通常不是 prompt 可以修的。
+
+## 最小 Harness 偽碼
 
 ```ts
-async function runTurn(state, userInput) {
-  state.append(userInput)
+async function runWork(state, input) {
+  state.appendInput(input)
 
-  while (true) {
-    const request = buildRequest(state)
-    const response = await streamModel(request)
-    const actions = collectActions(response)
+  while (!state.done) {
+    const context = buildContext(state)
+    const response = await callModel(context, state.tools)
 
-    if (actions.length === 0) {
-      state.commit(response.finalMessage)
-      return response.finalMessage
+    if (response.actions.length === 0) {
+      state.complete(response.output)
+      break
     }
 
-    for (const action of actions) {
-      const decision = await authorize(action, state.policy)
-      const result = decision.allowed
+    for (const action of response.actions) {
+      const decision = await authorize(action, state)
+      const observation = decision.allowed
         ? await execute(action)
         : {error: decision.reason}
 
-      state.append(action)
-      state.append(result)
+      state.appendAction(action)
+      state.appendObservation(observation)
     }
   }
 }
 ```
 
-後面的整套 Codex 架構，可以理解成：
-
-> **把這段簡單 loop 的每一行，都做成 production-grade。**
-
-## 常見誤解
-
-### 誤解 1：一個 Turn 就是一個 API Request
-
-不是。一個 Turn 可以有很多輪 model/tool 往返。
-
-### 誤解 2：Tool Call 就代表 Tool 成功
-
-不是。Tool 可能被拒絕、失敗、timeout。
-
-### 誤解 3：Model 自己知道 Tool 執行結果
-
-不知道。Harness 必須把 result 放回 context。
-
-### 誤解 4：Agent Loop 只是 while(true)
-
-Demo 是；production 還要處理 permission、streaming、state、cancel、retry、queue、compaction 等問題。
+Codex、DeepSeek、Pi 都可以被抽象回這段 loop；真正值得學的是它們如何把每一行拆成不同的 production boundary。
 
 ## 本章只要記住
 
-1. **Agent 核心循環是 Think → Act → Observe。**
-2. **一個 Turn 可以包含很多次 Model Call。**
-3. **Tool Call 是提案，Harness 才負責執行。**
-4. **Tool Result 必須回到下一輪 Context。**
-5. **Codex Harness 的大部分架構，都是在讓這個 Loop 更可靠。**
+1. **Agent Loop 是 Think → Act → Observe 的反覆協調。**
+2. **一次工作通常包含多次 Model Call。**
+3. **Action 是 proposal；Harness 才執行並產生 observation。**
+4. **Codex 把 loop 放在產品化 runtime 中心；DeepSeek 把 loop 做成 capability seam；Pi 把低階 loop 與高階 AgentSession 分層。**
+5. **Persisted state 與每輪 Model context 是兩個不同責任。**
 
-下一章會回答：每一輪送給 Model 的「Context」到底是怎麼組成的？
+下一章看每一輪真正送到 Model 面前的資料：[Context、Caching 與 Compaction](./context-and-caching.md)。
 
-## 延伸閱讀
+## 官方延伸閱讀
 
-- [Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
-- [`codex-rs/core/src/tasks/regular.rs`](https://github.com/openai/codex/blob/main/codex-rs/core/src/tasks/regular.rs)
+- [OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+- [DeepSeek Harness Agent Loop package](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/agent-loop/README.md)
+- [Pi `pi-agent-core`](https://github.com/earendil-works/pi/tree/main/packages/agent)

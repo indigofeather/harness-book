@@ -4,134 +4,96 @@ title: Cordis 與 Everything-is-a-Plugin 架構
 
 # Cordis 與 Everything-is-a-Plugin 架構
 
-DeepSeek Harness 最關鍵的架構選擇不是某個 Tool，而是：**Runtime 本身由 Plugin Tree 組成。**
+DeepSeek Harness 最關鍵的架構選擇不是某個 Tool，而是：
 
-## 先從 Codex 熟悉的世界轉過來
+> **Runtime responsibility 本身由 Plugin / Service Composition 組成。**
 
-Codex 比較容易畫成：
+讀這套系統時，先不要把它想成「一個 Agent Core 再加外掛」，而要先問：
+
+```text
+Service Definition 在哪？
+Provider 是誰？
+Consumer 是誰？
+哪個 Profile / Bundle 把它們 mount 起來？
+```
+
+## Cordis 是 Composition Kernel
 
 ```mermaid
 flowchart TB
-  C[codex-core]
-  C --> M[Model Client]
-  C --> T[Tool Runtime]
-  C --> S[State]
-  C --> P[Policy]
-  C --> E[Extensions]
+  C[Cordis]
+  C --> S1[Session Service]
+  C --> S2[System Prompt Service]
+  C --> S3[Tool Registry]
+  C --> S4[Agent Registry]
+  C --> S5[Agent Loop]
+  C --> S6[LLM Service]
+  C --> X[Other Capability Plugins]
 ```
 
-DeepSeek Harness 則更像：
+Cordis 負責：
 
-```mermaid
-flowchart TB
-  K[Cordis]
-  K --> P1[core/session]
-  K --> P2[core/system-prompt]
-  K --> P3[core/tools]
-  K --> P4[core/agent]
-  K --> P5[core/agent-loop]
-  K --> P6[llm/llm]
-  K --> PX[Other Plugins]
-```
+- plugin mount / unload；
+- dependencies；
+- shared context services；
+- typed events；
+- scoped context；
+- reversible effects。
 
-這不是說 DeepSeek 沒有 core package，而是這些 package 仍以 Cordis service / event / plugin 的方式組合。
+真正的 Agent 能力由 Plugins 提供。
 
-## 六個先理解的 Spine Package
+## 六個 Spine Capability
 
-官方架構文件列出的核心骨架可以先整理成：
-
-| Package | 責任 | 主要 Context Seam |
+| Package / Seam | 責任 | Context Key |
 |---|---|---|
-| `core/session` | append-only SessionEvent log | `ctx.sessions` |
-| `core/system-prompt` | system prompt sections + tool schema assembly | `ctx.systemPrompt` |
-| `core/tools` | tool registry + guarded execution | `ctx.tools` |
-| `core/agent` | Agent interface / registry / live events | `ctx.agents` |
-| `core/agent-loop` | 預設 concrete loop driver | `ctx.agentLoop` |
-| `llm/llm` | model message / streaming vocabulary + adapter seam | `ctx.llm` |
+| Session | durable event log | `ctx.sessions` |
+| System Prompt | ordered prompt contributions | `ctx.systemPrompt` |
+| Tools | registry + execution pipeline | `ctx.tools` |
+| Agent | registry / live agent surface | `ctx.agents` |
+| Agent Loop | concrete loop driver | `ctx.agentLoop` |
+| LLM | model vocabulary + adapters | `ctx.llm` |
 
-最重要的是依賴方向：
+這六個足以先看懂一個基本 Agent 如何被 composition 起來。
 
-> Extension 應依賴 service seam，而不是直接綁定某個 concrete loop implementation。
+## Service / Provider / Consumer
 
-## Service Provider 與 Consumer
-
-可以用「插座」理解。
+把 capability seam 想成插座：
 
 ```mermaid
 flowchart LR
-  C[Consumer Plugin] --> S[Service Seam]
+  C[Consumer] --> S[Service Contract]
   P1[Provider A] --> S
   P2[Provider B] --> S
 ```
 
-例如 filesystem consumer 不應該硬寫：
+Consumer 不應硬綁某個 backend。
+
+例如 filesystem：
 
 ```text
-Local Node fs
+Tool / LSP / Runtime Consumer
+→ ctx.fs
+← Local FS Provider
+← Remote FS Provider
+← Test Provider
 ```
 
-而是依賴：
+同樣模式可用在：
 
 ```text
-ctx.fs
+LLM
+Subprocess
+Shell
+Sandbox
+Storage
+Telemetry
+Subagent
+Code Runtime
 ```
 
-那麼 backend 可以換成：
+這就是 Capability Seam。
 
-```mermaid
-flowchart TB
-  F[ctx.fs]
-  L[Local FS] --> F
-  R[Remote Sandbox FS] --> F
-  V[Virtual / Test FS] --> F
-```
-
-同樣概念可以套到：
-
-- LLM；
-- subprocess；
-- shell；
-- sandbox；
-- storage；
-- terminal；
-- telemetry。
-
-這就是 **Capability Seam**。
-
-## 為什麼「沒有 Privileged Core」很重要？
-
-假設你想加一個新的 model provider。
-
-在 plugin-first 的設計裡，理想路徑是：
-
-```text
-新增 Adapter Plugin
-→ register 到 ctx.llm
-→ 現有 Agent Loop 繼續消費同一個 seam
-```
-
-不是：
-
-```text
-修改核心 switch-case
-→ 改 agent loop
-→ 改 UI
-→ 改 storage
-```
-
-再例如你想換 sandbox：
-
-```text
-Local sandbox provider
-↓ replace
-Remote container provider
-```
-
-依賴 `ctx.sandbox` 的 consumer 不應因此全部重寫。
-
-## Plugin Lifecycle 不只是「載入 JS」
-
-Cordis 的重要觀念是 reversible effects。
+## Reversible Effects
 
 Plugin mount 時可能：
 
@@ -140,9 +102,10 @@ register service
 register event handler
 register tool
 register command
+start scoped resource
 ```
 
-Plugin unload 時，對應 effect 應一起撤銷。
+Cordis 希望這些 effect 在 unload 時可以一起撤銷。
 
 ```mermaid
 sequenceDiagram
@@ -150,137 +113,120 @@ sequenceDiagram
   participant P as Plugin
   participant R as Registry
   C->>P: mount
-  P->>R: register capability
+  P->>R: register
   R-->>P: disposer / effect
   C->>P: unload
-  P->>R: dispose registration
+  P->>R: dispose
 ```
 
-這讓 Runtime composition 可以比「程式啟動時註冊一次全域 singleton」更動態。
+這對 HMR、test、dynamic runtime composition 很重要。
 
-## Profile 與 Bundle
-
-一個執行中的 `dsh` 可以理解成由多層 composition 組出的 Plugin Tree。
+## Profile / Bundle：Runtime 是怎麼被組出來的？
 
 ```mermaid
 flowchart TB
   P[Profile]
   P --> B1[Base Bundle]
-  P --> B2[Standard / Code Bundle]
+  P --> B2[Product Bundle]
   P --> U[User Plugins]
-  P --> PATCH[cordis.patch.yml]
+  P --> PATCH[Patches]
+  B1 --> R[Final Plugin Tree]
+  B2 --> R
+  U --> R
+  PATCH --> R
 ```
 
-Profile 的價值不是只切換設定值，而是切換「這個 Runtime 由哪些能力組成」。
+Profile 是具名 composition；Bundle 是可重用 composition layer；Patch 可以覆寫後面的 runtime tree。
 
-因此可以有：
+因此 troubleshooting 時要問的是：
+
+> **這個 capability 在當前 tree 裡是否真的有 Provider？**
+
+不是只問 npm package 有沒有安裝。
+
+## Turn / Step 與 Composition
+
+Loop 會消費：
 
 ```text
-standard profile
-code profile
-minimal profile
-creator profile
-company-internal profile
-benchmark profile
+sessions
+llm
+tools
+systemPrompt
+agents
 ```
 
-## Turn / Step 流程
+但高階 policy 並不一定寫在 loop 裡。
 
-DeepSeek 的詞彙和 Codex 不完全相同。
+例如：
 
-- **Session**：durable event stream 的邊界。
-- **Turn**：從輸入被 claim 到沒有待完成工作為止。
-- **Step**：一次 model request，加上該 step 產生的 tool calls。
-
-簡化流程：
-
-```mermaid
-flowchart TD
-  Q[Queued Input] --> TS[turn/start]
-  TS --> A[Assemble Prompt + Tool Schemas]
-  A --> PRE[agent/pre-step]
-  PRE --> SS[step/start]
-  SS --> L[llm/stream]
-  L --> AM[assistant/message]
-  AM --> TC{Tool calls?}
-  TC -->|Yes| TE[tools/pre-execute → execute → post-execute]
-  TE --> TR[tool/result]
-  TR --> A
-  TC -->|No / no owed work| END[turn/end]
+```text
+compaction
+retry
+permission
+sandbox
+subagents
+UI
 ```
 
-與 Codex Agent Loop 的本質相似，但 DeepSeek 把中間 seam 與事件公開得更強烈。
+可以透過 service / event extension points 接入。
 
-## 三種 Event Domain
+這條規則讓 concrete loop 保持相對聚焦。
 
-官方架構可概括成三種用途：
+## Plugin-first 的優點
 
-### Session events
-
-**Durable facts**。需要 reload 後仍存在，就應進 Session log。
-
-### Agent events
-
-**Live work in flight**。用於攔截 request、step、status、continuation 等 runtime 行為。
-
-### Capability events
-
-**在 service seam 周圍掛 policy / adapter / observation**，例如 tools / fs / telemetry。
-
-可以畫成：
-
-```mermaid
-flowchart LR
-  D[Durable State] --> S[Session Events]
-  L[Live Runtime] --> A[Agent Events]
-  C[Capability Boundary] --> E[Capability Events]
-```
-
-## 這種架構的優點
-
-- Model provider 容易替換。
-- Loop 本身有清楚 abstraction boundary。
-- Sandbox / filesystem / storage 可換 backend。
-- Plugin 可動態 mount / unload。
-- 很適合建立不同 purpose 的 Runtime Preset。
-- 研究 Harness 時可以隔離單一變因。
+- backend 可以替換；
+- Runtime 可以依用途組成不同 Profile；
+- test 可以用 fake providers；
+- UI / transport 也能成為 composition；
+- dynamic mount / teardown 更自然；
+- Harness research 可以控制單一變因。
 
 ## 代價
 
-自由度不是免費的。
-
-你需要理解：
+需要理解：
 
 ```text
-Cordis
 service
 provider
 consumer
-event
 scope
 realm
 effect
 profile
 bundle
+patch
 ```
 
-才能真正掌握整個系統。
+抽象越一般化，integration / ownership decision 也越多。
 
-因此 DeepSeek 的學習曲線不是「API 少」，而是**抽象層比較一般化**。
+所以 composability 不是免費的彈性，而是把更多架構責任交給 runtime builder。
 
-Codex 的 opinionated extension surface 反而常讓一般使用者比較容易知道：
+## 閱讀 Source 的固定順序
+
+遇到一個功能，例如 Sandbox：
 
 ```text
-Repo rule → AGENTS.md
-Workflow → Skill
-External capability → MCP
-Security → Permission / Rule
+1. 找 Service Definition
+2. 找 Provider implementations
+3. 找 Consumers
+4. 找 events / guards
+5. 找 Profile / Bundle composition
+6. 最後才追 function call
 ```
 
-所以 plugin-first 並不是永遠比較好，而是換取更高 runtime composability。
+這比直接從一個 implementation file 往下鑽更符合 DeepSeek 的設計。
+
+## 本章重點
+
+1. **Cordis 是 composition kernel，不是完整 Agent 本身。**
+2. **Runtime responsibilities 透過 Service / Provider / Consumer 解耦。**
+3. **Profile / Bundle / Patch 決定真正 boot 出來的 Plugin Tree。**
+4. **Reversible effects 讓 dynamic composition 能被正確 teardown。**
+5. **讀 DeepSeek source 時，先追 capability seam，再追 call graph。**
 
 ## 官方來源
 
 - [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
 - [Core subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/core.md)
-- [Agent Loop package](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/agent-loop/README.md)
+- [`packages/README.md`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/README.md)

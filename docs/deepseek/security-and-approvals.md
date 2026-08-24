@@ -4,50 +4,48 @@ title: 安全模型：Sandbox、Approval 與 Permission Presets
 
 # 安全模型：Sandbox、Approval 與 Permission Presets
 
-如果只談 DeepSeek Harness 的可組合性，卻不談安全，會讓比較失真。
-
-DeepSeek 目前已把安全責任拆成幾個相對獨立的 capability：
+DeepSeek Harness 將安全責任拆成多個相對獨立 capability：
 
 ```text
-Sandbox Mode
-Approval Policy
+Sandbox
+Approval
 Permission Preset
 Credentials
-Tool Guards / Events
+Tool Guards
+Execution Providers
+Audit Events
 ```
 
-和 Codex 一樣，核心原則仍是：
+第一件事就是不要把它們混成一個「安全模式」。
 
-> **Model 提出 Action，不等於 Runtime 一定允許執行。**
-
-## 先拆開三個最容易混淆的概念
+## 三個最容易混淆的概念
 
 ```mermaid
 flowchart TB
   P[Permission Preset]
   P --> S[Sandbox Mode]
   P --> A[Approval Policy]
-  S --> E[Filesystem / Process Enforcement]
-  A --> D[One-shot Approval Decision]
+  S --> E[Execution Enforcement]
+  A --> D[Per-action Decision]
 ```
 
 ### Sandbox Mode
 
-回答：**這次 Process 在 filesystem effect 上技術上能做什麼？**
+回答：某類 execution effect 技術上能不能發生？
 
 ### Approval Policy
 
-回答：**某個 Tool Action 需要額外授權時，要不要問人或 reviewer？**
+回答：這一次 action 是否需要 / 能取得額外授權？
 
 ### Permission Preset
 
-回答：**產品 UI 要怎麼把前兩個 knob 組成一個使用者看得懂的模式？**
+回答：產品 UI 怎麼把前兩者包成可理解的模式？
 
-Permission Preset 本身不是 OS enforcement。
+Preset 本身不是 enforcement。
 
-## Sandbox 的三種模式
+## Sandbox Modes
 
-目前 vocabulary 是：
+目前 vocabulary：
 
 ```text
 read-only
@@ -55,112 +53,55 @@ workspace-write
 danger-full-access
 ```
 
-名字和 Codex 很接近，但 DeepSeek 官方文件特別強調：
+要注意：官方的 `SandboxMode` 主要描述 filesystem effects，不代表 network、process visibility、secret access 都一起被同一個 enum 管理。
 
-> `SandboxMode` 主要描述 **filesystem effects**；network 與 process visibility 不在這個 vocabulary 裡。
+### read-only
 
-所以不要把：
+限制寫入，只保留 backend 必要 sink。
 
-```text
-workspace-write
-```
+### workspace-write
 
-誤讀成：
+允許 workspace 與指定 temp area 的寫入。
 
-```text
-只能連特定網路
-看不到其他 processes
-一定拿不到 secrets
-```
+### danger-full-access
 
-那些是其他 trust boundary。
+跳過 confinement，直接在原始 execution context 執行。
 
-### `read-only`
+因此它不是「更大的 sandbox」，而是**不使用 confined mode**。
 
-要求 backend 阻止寫入，只保留 backend / shell 必要的 sink。
+## Enforcement Strength：`full / partial`
 
-### `workspace-write`
-
-允許 workspace root 與 backend 承諾的 temp area 寫入。
-
-### `danger-full-access`
-
-直接跳過 confinement；consumer 使用原始 argv 執行。
-
-這表示 `danger-full-access` 不是「較寬的 sandbox」，而是**不走 confined provider**。
-
-## Enforcement 會明確回報 `full` 或 `partial`
-
-DeepSeek 這裡有一個很值得學的細節：Runtime 不應假裝所有平台都能提供相同強度的隔離。
-
-```text
-full
-partial
-```
-
-`partial` 代表 backend 確實啟用了限制，但無法保證 mode 宣稱的所有 file effects。
-
-官方目前列出的例子包括較舊 Landlock ABI 與 Windows ACL backend 的部分邊界。
-
-因此安全判斷應是：
+Runtime 不應假裝每個 OS backend 都能做到相同程度的 isolation。
 
 ```mermaid
 flowchart LR
-  R[Requested Policy] --> B[Selected Backend]
+  R[Requested Mode] --> B[Backend]
   B --> E{Enforcement}
-  E -->|full| OK[Promise Fully Enforced]
-  E -->|partial| W[Caller Must Decide Whether Partial Is Acceptable]
+  E -->|full| F[Promise fully met]
+  E -->|partial| P[Caller decides if acceptable]
 ```
 
-這比只回傳「sandbox 已啟用」更誠實。
+這是一個很重要的 production pattern：**安全承諾要能被量測與回報，不要只回傳 enabled=true。**
 
-## Sandbox 本身也是 Capability Seam
+## Local Sandbox Providers
 
-目前 local provider 包含平台實作：
+目前 local implementations 涵蓋不同平台，例如：
 
 ```text
 Linux  → bwrap / Landlock
 macOS  → Seatbelt
-Windows→ ACL restricted-token backend
+Windows→ ACL / restricted-token backend
 ```
 
-而 shell / PowerShell 等 consumer 不直接依賴某個 OS runner；它們依賴 `ctx.sandbox` contract。
+Consumer 依賴 sandbox contract，不應直接依賴某個平台 command wrapper。
 
-```mermaid
-flowchart LR
-  B[Bash / PowerShell Consumer] --> S[ctx.sandbox]
-  S --> L[Linux Provider]
-  S --> M[macOS Provider]
-  S --> W[Windows Provider]
-```
+## Approval Outcomes
 
-這也是 DeepSeek 和 Codex 很值得對照的地方：兩邊都做 cross-platform enforcement，但 DeepSeek 更刻意把 backend 做成 service seam。
-
-## Container、MicroVM、Remote Execution 怎麼看？
-
-官方文件有一個重要界線：
-
-> Containers、microVMs、remote execution 不應只是 `ctx.sandbox` 的另一個 wrapper provider；它們通常代表整個 execution world 都換掉。
-
-因為一旦 execution world 在遠端，通常需要一起替換：
-
-```text
-filesystem
-subprocess
-terminal
-LSP
-possibly code runtime
-```
-
-這正是 Capability Seam 的價值：不是只把 command 包進 container，而是讓整組 capability 指向同一個 execution world。
-
-## Approval 是獨立的一次性決策
-
-DeepSeek 的 user approval seam 回答一個很窄的問題：
+Approval 是一個窄而清楚的問題：
 
 > **May this specific action proceed?**
 
-目前 `ApprovalOutcome` 是封閉集合：
+目前 outcome：
 
 ```text
 allowed-once
@@ -169,162 +110,98 @@ cancelled
 unavailable
 ```
 
-只有 `allowed-once` 是 grant，其餘結果全部 fail closed。
+只有 `allowed-once` 是 grant。
 
-### 為什麼 `unavailable` 很重要？
+`unavailable` 也 fail closed：沒有 answerer、answerer error、非法 response 都不會默認放行。
 
-如果：
+## `ask` 與 `never`
 
-- 沒有 answerer；
-- answerer throw；
-- answerer 回傳非法值；
-- request 找不到 owner；
-
-系統不是默認允許，而是：
-
-```text
-unavailable → deny
-```
-
-這是 production Harness 很重要的 default-deny 原則。
-
-## Approval Policy：`ask` 與 `never`
-
-目前 session-level policy 是：
+Approval policy 可以決定：
 
 ```text
 ask
+→ 交給 interaction / answerer chain
+
 never
+→ 不詢問，deterministic reject
 ```
 
-### `ask`
+`never` 對 unattended / CI 很重要，因為「無人回答」不能變成自動允許。
 
-交給已組合的 answerer chain；如果沒有人能回答，結果是 `unavailable`。
+## Approval Audit
 
-### `never`
-
-不送出互動詢問，直接 deterministic reject。
-
-這特別適合：
-
-```text
-CI
-headless automation
-unattended execution
-```
-
-因為它不會卡在「等人按同意」。
-
-## Approval 也是 Event-sourced Audit Trail
-
-Approval request 需要位於 open turn 中，並在 Session Log 記錄一對 audit events：
+Decision 可寫入 Session Log：
 
 ```text
 approval/asked
 approval/decided
 ```
 
-這些是 log-only facts，不必直接進 model transcript。
+這些可以是 audit-only durable facts，不必污染 Model transcript。
 
 ```mermaid
 sequenceDiagram
   participant T as Tool
-  participant A as Approval Service
-  participant U as Answerer / UI
-  participant S as Session Log
-
-  T->>A: request action approval
+  participant A as Approval
+  participant U as UI / Answerer
+  participant S as Session
+  T->>A: request
   A->>S: approval/asked
   A->>U: ask
-  U-->>A: outcome
+  U-->>A: decision
   A->>S: approval/decided
-  A-->>T: closed outcome
+  A-->>T: outcome
 ```
 
-因此 reload / audit 可以知道「當時問了什麼、最後怎麼決定」。
+## Credentials
 
-## Approved Retry 與 Sandbox Escalation
-
-DeepSeek 的 policy resolution 是 per-call。
-
-概念上可以是：
+Config / UI 應持有 CredentialRef，而不是到處複製真正 secret。
 
 ```text
-原始 action
-→ workspace-write 被拒
-→ Approval
-→ allowed-once
-→ 用明確較寬 mode 重試這一次 call
+CredentialRef
+→ resolver
+→ secret only at operation boundary
 ```
 
-這比直接永久改 session sandbox 更窄。
+詳細見：[Permission、Credentials 與 Execution Worlds](./permissions-credentials-execution-worlds.md)。
 
-## Credentials 是另一條安全邊界
+## Guard、Approval、Sandbox、Invariant
 
-`packages/credentials/` 把 credential reference 與真正 secret value 分開。
-
-重要原則是：
+四層不要混：
 
 ```text
-Config / Session / UI
-持有 CredentialRef
-
-真正 operation 執行時
-才 resolve secret value
-```
-
-這避免把 secret 當普通 config 字串在 UI、Session Event、Plugin tree 中到處複製。
-
-## Tool Guard 與 Sandbox 不同
-
-DeepSeek 還有 `guard`、tool execution events、invariants 等機制。
-
-要分清楚：
-
-```text
-Guard / Rule-like logic
-→ 判斷某個 action 是否合理、是否 deadline、是否重複
+Guard
+→ runtime hygiene / owner policy
 
 Approval
-→ 這一次要不要放行
+→ authorization
 
 Sandbox
-→ OS / execution layer 能不能真的造成某種 effect
+→ technical confinement
+
+Invariant
+→ structural correctness
 ```
 
-三者不能互相取代。
+例如重複 Tool Call advisory 是 Guard 問題；filesystem write boundary 是 Sandbox 問題；orphan Tool Result 是 Invariant 問題。
 
-## DeepSeek 與 Codex 的安全模型怎麼公平比較？
+## Remote Execution
 
-| 問題 | Codex | DeepSeek Harness |
-|---|---|---|
-| Sandbox modes | read-only / workspace-write / full access 類 | read-only / workspace-write / danger-full-access |
-| OS enforcement | productized sandbox stack | swappable sandbox service + platform providers |
-| Approval | App / CLI / App Server approval lifecycle | `ctx.approval` + answerer waterfall |
-| Fail closed | 是 | 是，`unavailable` 也拒絕 |
-| Session policy | permission / approval config | sandbox events + approval policy events |
-| Product preset | permission profiles | Permission Presets |
-| Remote execution | 有 environments / execution abstractions | 倾向替換整組 capability seam |
-| Credential boundary | Codex auth / provider / environment 管理 | dedicated credential ref / resolver seam |
+Container / microVM / remote worker 往往代表整個 execution world 被替換：filesystem、subprocess、terminal、LSP 可能都要一起指向遠端。
 
-更精確的結論是：
-
-> **Codex 的安全優勢在完整 Coding Agent 產品整合；DeepSeek 的安全模型其實也相當完整，優勢則在 enforcement backend 與 interaction seam 的可替換性。**
-
-不能再簡化成「Codex 有 security，DeepSeek 只是 plugin framework」。
+因此不要把「remote environment」簡化成 sandbox mode 的另一個 enum value。
 
 ## 本章重點
 
 1. **Sandbox、Approval、Permission Preset 是三個不同責任。**
-2. **DeepSeek 的 SandboxMode 主要描述 filesystem effects，不包含 network 等所有安全邊界。**
-3. **Sandbox provider 必須 fail closed，並明確回報 full / partial enforcement。**
-4. **Approval 只有 `allowed-once` 是 grant；其他 outcome 一律拒絕。**
-5. **Approval decision 會寫入 Session Log，形成 durable audit trail。**
-6. **Remote Sandbox 往往應替換整個 execution capability family，而不是只包一層 shell。**
+2. **SandboxMode 不能被過度解讀成所有 security boundary。**
+3. **`full / partial` 讓 enforcement strength 可被明確回報。**
+4. **Approval 只有 allowed-once 是 grant；unavailable 也 fail closed。**
+5. **Guard、Approval、Sandbox、Invariant 分別處理不同層次。**
 
 ## 官方來源
 
-- [Sandbox subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/sandbox.md)
-- [Approval subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/approval.md)
+- [Sandbox](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/sandbox.md)
+- [Approval](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/approval.md)
 - [Permission Presets](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/permission-presets.md)
 - [Credentials](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/credentials.md)

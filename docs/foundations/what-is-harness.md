@@ -6,300 +6,324 @@ title: 什麼是 Harness？
 
 如果只記一句話：
 
-> **Model 負責想，Harness 負責把「想法」變成可執行、可觀察、可限制的工作。**
+> **Model 負責判斷下一步；Harness 負責把這個判斷變成可執行、可觀察、可限制、可恢復的工作流程。**
 
-這一章先不碰 Rust source，先把責任邊界建立清楚。
+這一章先不綁定任何單一產品。後面再用 Codex、DeepSeek Harness、Pi 三套實作去看：同一組 Harness 責任，可以被放在完全不同的架構層。
 
-## 初學者版：把 Codex 想成一個受控工作室
-
-一個 coding agent 可以想成這樣：
+## 最小心智模型
 
 ```mermaid
 flowchart LR
-  M[Model\n大腦] --> H[Harness\n控制中心]
-  H --> T[Tools\n手與感官]
-  T --> W[Workspace / OS / Network\n工作現場]
-  W --> T
+  U[User / Client] --> H[Agent Harness]
+  H --> M[Model]
+  M --> H
+  H --> T[Tools / Capabilities]
+  T --> E[Environment]
+  E --> T
   T --> H
-  H --> M
-  P[Policy / Sandbox\n門禁] --> H
-  S[State\n工作筆記] <--> H
+  P[Policy / Trust] --> H
+  S[State / History] <--> H
 ```
 
-角色可以對照成：
+可以先把角色想成：
 
-| 元件 | 生活化理解 | 工程上的工作 |
+| 元件 | 直覺角色 | 工程責任 |
 |---|---|---|
 | Model | 大腦 | 理解、推理、選擇下一步 |
-| Harness | 控制中心 | 組 context、驅動 loop、執行工具、保存狀態 |
-| Tools | 手與感官 | 讀檔、搜尋、Shell、Patch、MCP |
-| Environment | 工作現場 | Repo、OS、Git、Network、External Services |
-| Policy / Sandbox | 門禁 | 限制哪些 action 能真的發生 |
-| State | 工作筆記 | 保存 thread、turn、item、history、進度 |
+| Harness | 控制中心 | 組 context、驅動 loop、調度工具、保存與投影狀態 |
+| Tools / Capabilities | 手與感官 | 讀檔、搜尋、Shell、API、外部工具 |
+| Environment | 工作現場 | Repository、OS、Network、Remote Worker、External Services |
+| Policy / Trust | 門禁與治理 | 決定 action 是否允許、需要 approval、或必須被隔離 |
+| State | 工作記錄 | 保存 trajectory、resume/fork 所需資料與 durable facts |
 
-這張圖比「Codex 是一個 AI 模型」更接近實際情況。
+**Model 不會直接碰你的電腦。真正把模型連到現實世界的是 Harness。**
 
 ## 為什麼 Model 不能自己完成所有事？
 
-Model 本身只能根據送進去的 context 產生輸出。
+Model 每次 inference 只看得到送進去的 context。它不會自動知道：
 
-它不會憑空知道：
+- repository 現在有哪些檔案；
+- 測試實際跑出了什麼；
+- 某個寫入是否真的成功；
+- process 是否 timeout；
+- network 或 filesystem 是否允許；
+- 使用者是否批准危險操作；
+- 上一次工作停在哪裡；
+- 哪一段歷史已被 compact、fork 或 replay。
 
-- 你的 repository 現在有哪些檔案；
-- `npm test` 真正跑出了什麼；
-- 某個檔案是否真的已被修改；
-- 目前 shell 是否可以連網；
-- 使用者是否批准了某個危險操作；
-- 這個 thread 上一輪做了什麼。
+因此一次 tool call 更精確的理解是：
 
-這些都要由 Harness 和 Tools 把真實世界資訊帶回來。
+> **Model 提出一個 action proposal，Harness 再決定如何驗證、授權、執行、記錄與回傳。**
 
 ```mermaid
 flowchart TD
-  A[Model 的判斷\n「我要讀 auth.ts」] --> B[Harness 接到 tool call]
-  B --> C{Policy 允許嗎？}
-  C -->|否| D[回傳拒絕原因]
-  C -->|是| E[Tool 讀取真實檔案]
-  E --> F[Harness 收集結果]
-  F --> G[把結果加入 Context]
-  G --> H[Model 看到真實內容後再判斷]
+  A[Model proposes action] --> V[Validate]
+  V --> P{Policy / Trust}
+  P -->|deny| D[Return denial]
+  P -->|ask| Q[Approval / reviewer]
+  P -->|allow| X[Execute]
+  Q -->|approved| X
+  Q -->|rejected| D
+  X --> O[Observe real result]
+  O --> S[Persist / project state]
+  S --> N[Next model context]
 ```
-
-**Tool call 是一個提案，不是現實世界已經發生的事情。**
-
-## 模型與 Harness 的責任分界
-
-| 問題 | Model | Harness |
-|---|---|---|
-| 下一步要讀哪個檔案？ | 推理與選擇 | 提供搜尋 / 讀檔能力 |
-| 命令能否碰網路？ | 可以提出需求 | 實際限制與執行 |
-| 是否需要使用者批准？ | 可以解釋原因 | 根據 policy 決定是否要求 approval |
-| shell 結果是什麼？ | 必須等待結果 | 執行、截斷、回傳 stdout/stderr |
-| conversation 如何延續？ | 只看到本輪 context | 保存並重建 thread / turn / items |
-| MCP server 怎麼連線？ | 只看到 tool schema | 管理 transport、auth、timeout、exposure |
-| context 太長怎麼辦？ | 無法自行擴大 window | 管理 budget、cache、compaction |
-
-這個分界是整份教材最重要的架構基礎。
 
 ## Harness 的七個核心責任
 
-可以把 Harness 想成七個彼此合作的子系統。
+這份教材後面會一直用同一組責任讀三套系統。
 
 ```mermaid
 flowchart TB
   H[Harness]
   H --> C[1. Context]
-  H --> T[2. Tool Registry]
-  H --> L[3. Agent Loop]
+  H --> L[2. Agent Loop]
+  H --> T[3. Tools / Capabilities]
   H --> E[4. Execution]
-  H --> P[5. Policy]
-  H --> S[6. State]
-  H --> O[7. Observability]
+  H --> P[5. Policy / Trust]
+  H --> S[6. State / Lifecycle]
+  H --> I[7. Integration / Observability]
 ```
 
 ### 1. Context orchestration
 
-把模型真正需要的資訊整理成 context：
-
-- base instructions；
-- developer / project guidance；
-- AGENTS.md；
-- skills metadata；
-- environment context；
-- conversation history；
-- current user request。
-
-重點不是「把所有資訊都塞進去」，而是讓模型看到**正確、足夠、順序穩定**的資訊。
-
-### 2. Tool registry
-
-告訴模型有哪些能力，以及每個能力要用什麼參數。
-
-例如：
+決定這一輪 Model 真正看到什麼：
 
 ```text
-shell
-read_file
-apply_patch
-search
-MCP tools
+base instructions
+project guidance
+runtime context
+tool schemas
+skill catalog
+conversation / session history
+current user input
 ```
 
-Model 只能選擇 Harness 暴露給它的能力。
+重點不是把所有資訊塞進去，而是**把現在需要的資訊，以穩定且可控的方式組起來**。
 
-### 3. Agent loop
+### 2. Agent Loop
 
-Model 回傳 tool call 時，工作還沒有完成。
-
-Harness 必須：
+把一次任務拆成多輪：
 
 ```text
-Model → Tool Call → Execute → Tool Result → Model → ... → Final Message
+Model
+→ Action
+→ Observation
+→ Model
+→ ...
+→ Final result
 ```
 
-直到沒有待執行 action，turn 才真正完成。
+Production Harness 還要處理 streaming、cancel、steering、retry、queue、compaction 與 failure semantics。
 
-### 4. Execution environment
+### 3. Tools / Capabilities
 
-負責真實執行：
+Harness 決定 Model 能看到哪些能力，以及如何描述它們。
 
-- cwd；
-- process；
-- environment variables；
-- PTY；
-- filesystem；
-- background process；
-- network；
-- OS sandbox。
+能力可能來自：
 
-這些都不是語言模型本身的能力。
+- 內建 file / shell tools；
+- MCP server；
+- Plugin / Extension；
+- Workflow / Subagent；
+- Remote execution provider。
 
-### 5. Policy / authorization
+「Tool」只是其中一種 presentation；更底層的系統常會把 filesystem、subprocess、sandbox、model adapter 都視為 capability。
 
-Model 想做某件事，不代表系統應該允許。
+### 4. Execution
 
-```mermaid
-flowchart LR
-  M[Model wants action] --> P{Policy}
-  P -->|Allow| E[Execute]
-  P -->|Need approval| A[Ask user / reviewer]
-  P -->|Deny| D[Reject]
+真正處理 side effect：
+
+```text
+filesystem
+process / PTY
+network
+working directory
+environment variables
+remote worker
+container / sandbox
 ```
 
-安全的 agent 必須把「推理能力」和「執行權限」分開。
+這些都是 Harness 與 machine world 的交界。
 
-### 6. State and lifecycle
+### 5. Policy / Trust
 
-負責保存：
+把「Model 想做」與「系統允許做」分開。
 
-- Thread；
-- Turn；
-- Item；
-- History；
-- Rollout；
-- Resume / Fork；
-- Interrupt；
-- Ephemeral session。
+可能包含：
 
-Model 不會自己持久化這些狀態。
+```text
+allow / deny
+approval
+sandbox mode
+project trust
+credential boundary
+rules / guards
+external policy engine
+```
 
-### 7. Observability and integration
+安全不是一句 prompt，而是一組 runtime boundary。
 
-把 agent 內部進度轉成外部世界可以消費的事件，例如：
+### 6. State / Lifecycle
 
-- reasoning progress；
-- shell command started；
-- tool completed；
-- file changed；
-- message delta；
-- turn completed。
+Harness 必須能回答：
 
-這讓 CLI、IDE、App Server client、CI 能顯示與記錄同一套 runtime。
+```text
+這段工作怎麼保存？
+一次工作單位怎麼界定？
+怎麼 resume？
+怎麼 fork / branch？
+context 太長怎麼 compact？
+哪些 facts 必須 durable？
+```
 
-## Harness 不只是「工具呼叫器」
+不同 Harness 在這一題的資料模型差異非常大。
 
-最小 function-calling demo 可能只有：
+### 7. Integration / Observability
+
+Agent 不一定只由一個 CLI 使用。Harness 還要讓：
+
+```text
+TUI
+IDE
+Web UI
+SDK
+RPC client
+CI / automation
+telemetry / audit system
+```
+
+都能理解同一個 runtime 的進度與結果。
+
+## 三套 Harness 怎麼映射這七個責任？
+
+先只看第一層，不急著深入 API。
+
+| 責任 | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Runtime center | `codex-core` | Cordis composition + services | `pi-agent-core` + `AgentSession` |
+| Context | core context / instructions | `system-prompt` + session projection | `ResourceLoader` + session context |
+| Loop | production agent loop | replaceable `agent-loop` service | `Agent` loop + `AgentSession` lifecycle |
+| Tools | built-in tools / MCP / exec | `ctx.tools` + capability providers | built-in tools + extension tools |
+| Security | sandbox / approval / rules | sandbox / approval / credentials seams | Project Trust + extension policy + external isolation |
+| State | Thread / Turn / Item / rollout | Session / Turn / Step / SessionEvent | JSONL Session Entry Tree |
+| Integration | CLI / SDK / App Server | Web / SDK / JSON-RPC / ACP / Host | TUI / Print / JSON / RPC / SDK |
+
+這張表不是排行榜，而是後面閱讀三套系統的索引。
+
+## 三種不同的「穩定中心」
+
+三套 Harness 最大差異之一，是它們各自選擇了什麼東西不應輕易被替換。
+
+### Codex
+
+```text
+Productized Runtime
+→ 固定較多 Coding Agent semantics
+→ 用高階 extension surfaces 客製
+```
+
+適合研究：**如何把完整 Coding Agent 做成熟。**
+
+### DeepSeek Harness
+
+```text
+Composable Runtime Framework
+→ responsibility 本身變成 service / provider / plugin seam
+```
+
+適合研究：**如何讓 Runtime 基礎設施本身可重組。**
+
+### Pi
+
+```text
+Minimal Harness
+→ core 保持小
+→ workflow / UI / policy 大量交給 extension 與 environment
+```
+
+適合研究：**哪些能力其實不需要進 core。**
+
+## Harness 不只是「function calling loop」
+
+最小 demo 可以只有：
 
 ```ts
 while (true) {
   const response = await model(context, tools);
   if (!response.toolCall) return response.text;
-  const result = await execute(response.toolCall);
-  context.push(response.toolCall, result);
+  context.push(await execute(response.toolCall));
 }
 ```
 
-但 production harness 還要補上很多東西：
+但 production Harness 真正困難的是旁邊這些責任：
 
 ```mermaid
 flowchart LR
-  U[Client] --> H[Harness]
-  H --> C[Context Builder]
-  C --> M[Model]
-  M --> R[Response Stream]
-  R --> D{結果類型}
-  D -->|Final message| U
-  D -->|Tool call| P[Policy / Approval]
-  P --> X[Executor]
-  X --> O[Tool Output]
-  O --> S[State / History]
-  S --> C
-  H --- OBS[Events / Telemetry]
+  C[Client] --> H[Harness]
+  H --> X[Context]
+  X --> M[Model]
+  M --> A{Action?}
+  A -->|No| R[Result]
+  A -->|Yes| P[Policy / Trust]
+  P --> E[Executor]
+  E --> O[Observation]
+  O --> S[State]
+  S --> X
+  H --- Q[Streaming / Queue / Retry]
+  H --- T[Telemetry / Audit]
 ```
 
-真正困難的地方不是 `await model()`，而是**如何持續協調 model 和真實世界**。
+所以 Harness 的品質通常決定：Agent 能否長時間工作、能否安全執行、能否恢復、能否被產品穩定整合。
 
-## 三種程度的人，可以看到不同層次
+## 一個實用的除錯分類
 
-### 初學者只要先懂
-
-- Model 是大腦。
-- Harness 是控制中心。
-- Tools 才真的碰檔案與系統。
-- Policy 決定哪些 action 能發生。
-
-### 工程師再理解
-
-- Context 如何組成；
-- Tool schema 如何暴露；
-- Tool result 如何回到下一輪 inference；
-- State 如何保存與恢復。
-
-### 架構設計者要再往下
-
-- Provider abstraction；
-- retry / idempotency；
-- sandbox implementation；
-- event protocol；
-- persistence；
-- trust boundary；
-- observability。
-
-## 一個非常實用的除錯分類
-
-遇到 agent 問題時，先不要急著改 prompt。
+遇到 Agent 表現不好時，先問是哪一類問題：
 
 ```mermaid
 flowchart TD
-  Q[Agent 出問題] --> A{問題屬於哪一類？}
-  A -->|不知道該做什麼| I[Instructions / Context / Skill]
-  A -->|知道但做不到| T[Tool / Environment / Permission]
-  A -->|做了但沒接續| L[Loop / Event / State]
-  A -->|不該做卻做得到| P[Policy / Security Boundary]
-  A -->|越跑越慢或越貴| C[Context / Caching / Compaction]
+  Q[Agent 問題] --> A{哪個 responsibility?}
+  A -->|不知道該做什麼| C[Context / Guidance]
+  A -->|知道但做不到| T[Tools / Capability]
+  A -->|做了沒接續| L[Loop / Lifecycle]
+  A -->|做了不該做的事| P[Policy / Trust]
+  A -->|歷史亂掉| S[State / Projection]
+  A -->|Client 看不懂進度| I[Integration / Events]
+  A -->|越跑越慢或越貴| B[Budget / Caching / Compaction]
 ```
 
-這五類問題會貫穿後面的所有章節。
+這比把所有問題都歸因到 Prompt Engineering 更有效。
 
 ## 常見誤解
 
-### 誤解 1：Harness 就是 system prompt
+### Harness = System Prompt？
 
-不是。Prompt 只是 Harness 管理的一部分。
+不是。Prompt 只是 Context orchestration 的一部分。
 
-### 誤解 2：Model 呼叫 shell 就代表 shell 已經執行
+### Tool Call = Action 已經發生？
 
-不是。Model 只產生 tool call，Harness 才會決定是否執行。
+不是。Tool Call 是 proposal；Harness 才處理 execution 與 policy。
 
-### 誤解 3：Agent 做錯事都靠提示詞修
+### Model 越強，Harness 越不重要？
 
-不是。Timeout、sandbox、credentials、state、retry 等都應由 Harness 解決。
+通常相反。Model 能做的 action 越多，越需要可觀察、可限制、可恢復的 execution boundary。
 
-### 誤解 4：模型越強，Harness 越不重要
+### 所有 Harness 都應該有同一套 Sandbox / Subagent / Session 模型？
 
-通常相反。模型能力越強、能做的事情越多，越需要好的 execution 和 policy boundary。
+不是。Codex、DeepSeek、Pi 恰好展示了三種不同答案；這正是本教材要並讀它們的原因。
 
 ## 本章只要記住
 
-1. **Model 決策，Harness 執行與協調。**
-2. **Tools 是 Model 接觸真實世界的介面。**
-3. **Policy 讓「想做」和「能做」分離。**
-4. **State 讓 Agent 不只是一次性的 function call。**
-5. **很多 Agent 問題其實是 Harness 問題，不是 Prompt 問題。**
+1. **Model 決策，Harness 協調真實世界。**
+2. **Tool Call 是 action proposal，不是 side effect 本身。**
+3. **Context、Loop、Capability、Execution、Policy、State、Integration 是七個核心責任。**
+4. **不同 Harness 的差異，主要在這些責任被放在哪一層、由誰擁有。**
+5. **Codex、DeepSeek Harness、Pi 都是完整案例，但穩定中心不同。**
 
-下一章會把 Harness 最核心的控制迴路拆開：[Agent Loop：一次 Turn 到底怎麼跑](./agent-loop.md)。
+下一章看所有 Harness 共同需要解決的控制問題：[Agent Loop：一次任務到底怎麼跑](./agent-loop.md)。
 
-## 延伸閱讀
+## 官方延伸閱讀
 
-- [Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
-- [App Server architecture article](https://openai.com/index/unlocking-the-codex-harness/)
+- [OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+- [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)
+- [Pi Documentation](https://pi.dev/docs/latest)

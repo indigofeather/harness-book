@@ -1,316 +1,203 @@
 ---
-title: 第九章導讀：如何比較 Agent Harness
+title: 比較框架：如何比較 Agent Harness
 ---
 
-# 第九章導讀：如何比較 Agent Harness
+# 比較框架：如何比較 Agent Harness
 
-> 最後核對：2026-08-24。本章比較的是 **Harness architecture 與 adoption trade-off**，不是 GPT、DeepSeek 或其他模型本身的能力。
+> 最後核對：2026-08-24。本章比較的是 Harness architecture 與 adoption trade-off，不是 GPT、DeepSeek 或其他模型本身的能力。
 
-前面八章分別建立了 Codex、DeepSeek Harness、Pi 的心智模型。到了第九章，最容易犯的錯是直接問：
+前面已經把 Codex、DeepSeek Harness、Pi 各自當成完整 case study。到了比較章，最容易犯的錯是直接問：
 
 > **哪一套最好？**
-
-這個問題太早了。
 
 更好的順序是：
 
 ```text
-先定義要比較的責任
-→ 再看三套把責任放在哪一層
-→ 再看誰負責維護與治理
-→ 最後才做選型與 PoC
+先定義要比較的 responsibility
+→ 看三套把 boundary 放在哪
+→ 看 ownership / governance cost
+→ 再做情境選型
+→ 最後用 PoC 驗證
 ```
 
-因此第九章不做排行榜，而是把三套 Harness 放進同一個比較框架。
-
-## 第九章的閱讀順序
+## 本章閱讀順序
 
 ```mermaid
 flowchart LR
-  A[9.1 比較框架\n先知道該比較什麼]
-  B[9.2 架構維度\n逐項看三套差異]
-  C[9.3 情境式選型\n把需求映射到架構]
-  D[9.4 PoC 與採用\n驗證、治理、混用]
-
-  A --> B --> C --> D
+  A[6.1 比較框架] --> B[6.2 架構維度]
+  B --> C[6.3 情境式選型]
+  C --> D[6.4 PoC / Adoption]
 ```
-
-四篇的分工很明確：
 
 | 頁面 | 只回答一件事 |
 |---|---|
-| 本頁 | **比較 Harness 時，應該看哪些問題？** |
-| [架構維度逐項比較](./architecture-comparison.md) | **三套在 Runtime / State / Tool / Security / Integration 上到底哪裡不同？** |
+| 本頁 | **比較 Harness 時應該看哪些問題？** |
+| [架構維度逐項比較](./architecture-comparison.md) | **三套在 Runtime / State / Tool / Security / Integration 上怎麼不同？** |
 | [情境式選型](./scenario-selection.md) | **放進具體產品情境時，哪種架構比較自然？** |
-| [PoC、採用與混用策略](./adoption-playbook.md) | **真正導入之前要怎麼驗證？怎麼控制 adoption risk？** |
+| [PoC、採用與混用策略](./adoption-playbook.md) | **真正導入前怎麼驗證、治理與控制風險？** |
 
-## 先把三套 Harness 壓成三個 archetype
-
-這不是完整描述，而是最有用的第一層抽象。
+## 三個 Archetype
 
 ### Codex：Productized / Opinionated Runtime
 
 ```text
-Codex
-→ 已經替你固定較多 Coding Agent semantics
-→ 再提供明確的高階 extension surfaces
+Runtime 已經替你固定較多 Coding Agent semantics
+→ 再提供清楚的高階 extension surfaces
 ```
 
-它最值得問的是：
+核心問題：
 
-> **如果大多數 Coding Agent 問題都由 Runtime 先解好，產品與整合成本能降低多少？**
+> **如果大多數 Coding Agent 問題 upstream 已經產品化，能降低多少整合與治理成本？**
 
 ### DeepSeek Harness：Composable Runtime Framework
 
 ```text
-DeepSeek Harness
-→ Runtime responsibility 本身就是 composition unit
-→ Service / Provider / Consumer 可以被替換
+Runtime responsibility 本身就是 composition unit
+→ Service / Provider / Consumer 可被替換
 ```
 
-它最值得問的是：
+核心問題：
 
-> **如果 Model、Loop、Sandbox、Storage、UI 都可能換，Runtime 要怎麼避免變成一整塊？**
+> **如果 Model、Loop、FS、Sandbox、Storage、UI 都可能換，怎麼避免 runtime 變成 monolith？**
 
 ### Pi：Minimal / Self-extensible Harness
 
 ```text
-Pi
-→ core 刻意保持小
-→ 大量 workflow / policy / UI 行為推到 extension 或外部 environment
+Core 刻意保持小
+→ workflow / UI / policy UX 大量移到 Extension / Resource / Environment
 ```
 
-它最值得問的是：
+核心問題：
 
-> **哪些能力其實不需要進 core？如果 core 少做決策，使用者能不能更快塑形自己的 Agent？**
+> **哪些能力其實不需要進 core？採用者願意自己承擔多少 governance？**
 
-## 比較前，先看三套官方畫面
+## 比較 Harness 的九個核心問題
 
-比較架構不應只停留在抽象圖。三套官方 UI 本身就透露了各自的產品哲學：
-
-- [Codex 官方介面與 App Server](../architecture/official-visuals.md)
-- [DeepSeek Harness 官方 Lifecycle / Web UI](../deepseek/official-visuals.md)
-- [Pi 官方 TUI 與 Session Tree](../pi/official-visuals.md)
-
-建議先快速看過，再回來讀比較框架。這樣更容易把「架構差異」和「實際產品表現」連在一起。
-
-## 比較 Harness 的七個核心問題
-
-| 維度 | 真正要問的問題 |
+| 維度 | 真正要問什麼 |
 |---|---|
-| 1. Runtime Center | **哪一層是不能輕易被替換的穩定中心？** |
-| 2. Change Surface | **Model、Loop、Tool、State、Sandbox 哪些是一級可替換能力？** |
-| 3. State Semantics | **系統如何表示一次工作、保存歷史、resume、fork、replay？** |
-| 4. Execution & Security | **Tool call 到真正 OS effect 中間有哪些 enforcement boundary？** |
-| 5. Extension Boundary | **新增 workflow / tool / policy 時，要進 core、plugin、extension，還是外部系統？** |
-| 6. Integration Boundary | **CLI、IDE、自製 UI、SDK、RPC 要從哪個穩定介面接入？** |
-| 7. Ownership Cost | **哪些責任由 upstream 維護，哪些會變成自己的 platform burden？** |
-
-注意第七題最容易被忽略。
-
-技術上「可以替換」不等於組織上「值得自己維護」。
+| Runtime Center | 哪一層是最穩定、最難替換的中心？ |
+| Model / Loop | Provider、request、loop、retry 可以替換到什麼程度？ |
+| Context | 誰組 system prompt、tool schemas、history、compaction？ |
+| State | 怎麼表示工作、resume、fork、replay、audit？ |
+| Tools | Tool call 到 side effect 中間有哪些 pipeline / policy boundary？ |
+| Extensions | 新能力要進 core、plugin、extension、skill 還是外部系統？ |
+| Security | sandbox、approval、trust、credentials、execution world 誰負責？ |
+| Integration | CLI、SDK、RPC、IDE、自製 UI 從哪個 contract 接入？ |
+| Ownership Cost | 哪些 responsibility upstream 維護，哪些會變成你的 platform burden？ |
 
 ## 不要先比較 Feature Checklist
 
-如果只列功能，很容易得到錯誤結論：
+如果只列：
 
 ```text
 有沒有 Subagent？
+有沒有 MCP？
 有沒有 Sandbox？
 有沒有 SDK？
-有沒有 Multi-model？
 ```
 
-真正差異常常不是「有沒有」，而是：
+很容易得到錯誤結論。
 
-```text
-這項能力是不是 core contract？
-是不是可替換 provider？
-是不是 extension 實作？
-是不是外部 execution environment 的責任？
-```
+例如 Pi 沒有 canonical built-in subagent workflow，不代表它不能 multi-agent；它只是把 delegation 留給 Extension、SDK 或 external process。
 
-例如 Sandbox：
+又例如 DeepSeek 的 integration 不叫 App Server，不代表它缺少 client boundary；它有 SDK / JSON-RPC / ACP / Host / Typert 等不同 surfaces。
+
+所以 feature existence 只是第一層，更重要的是：
+
+> **這個 capability 在哪個 architectural layer？誰負責 lifecycle、security、compatibility？**
+
+## State 是最好的第一個比較軸
 
 ```text
 Codex
-→ productized runtime security 的核心能力
+Thread → Turn → Item
 
 DeepSeek
-→ formal / replaceable capability seam
+Session → SessionEvent → Projection / Replay
 
 Pi
-→ 預設不把 strong isolation 放進 core
-→ 通常交給外部 container / microVM / sandbox
+JSONL Session → Entry(id,parentId) → Tree / Branch
 ```
 
-三套都可以在安全環境工作，但 ownership model 完全不同。
+這三套 state model 已經透露很多產品哲學：
 
-## 「誰比較彈性」也不是好問題
+- Codex 對 Rich Client / product activity 很友善；
+- DeepSeek 對 replay / invariant / derived projections 很自然；
+- Pi 對 branch-native exploration 很直接。
 
-彈性至少要拆成三種。
-
-### 產品行為彈性
-
-能不能快速加新的 workflow、command、tool、UI？
-
-Pi 很強；Codex 也有多種語意明確的 extension surface。
-
-### Runtime infrastructure 彈性
-
-能不能直接換 Agent Loop、Sandbox Provider、Storage、Execution World？
-
-DeepSeek 最直接。
-
-### Integration 彈性
-
-能不能用 CLI、SDK、RPC、App Server、Web Host 等不同方式嵌入？
-
-三套都有，但 boundary 形狀不同。
-
-所以不要把「彈性」壓成一個分數。
-
-## State 是最好的第一個比較入口
-
-### Codex
+## Extension 是第二個好比較軸
 
 ```text
-Thread
-└─ Turn
-   └─ Item
+Codex
+→ 語意化 extension surfaces
+
+DeepSeek
+→ 一致的 Plugin / Service composition
+
+Pi
+→ 深度 ExtensionAPI + Resource ecosystem
 ```
 
-偏向 product / UI-friendly activity model。
-
-### DeepSeek Harness
+沒有一種絕對比較好；你要比較的是 team 是否需要：
 
 ```text
-Session
-→ SessionEvent
-→ Projection / Context / Replay
+clear product conventions
+vs
+infrastructure replaceability
+vs
+rapid self-extension
 ```
 
-偏向 event-sourced runtime facts。
+## Security 是第三個好比較軸
 
-### Pi
+不要只比 sandbox mode 名稱。
+
+應該追：
 
 ```text
-Session JSONL
-→ Entry(id, parentId)
-→ Tree / Branch
+untrusted input
+→ policy decision
+→ approval
+→ execution backend
+→ credentials
+→ side effect
+→ audit trail
 ```
 
-偏向 branch-native conversation history。
+三套最大的不同往往是 **security ownership**，不是有沒有一個 `sandbox=true`。
 
-同樣是「保存 Agent 歷史」，三套回答的是不同產品需求。
+## Ownership Cost 常比 Feature 更重要
 
-## 第二個比較入口：誰擁有 Runtime responsibility？
+技術上「可以自己做」不等於「值得自己維護」。
 
-可以把三套放在一條責任光譜上：
+例如：
 
-```mermaid
-flowchart LR
-  C[Codex\nRuntime 幫你決定較多]
-  D[DeepSeek\n責任被拆成可組合 seam]
-  P[Pi\nCore 幫你決定較少]
+- 自己寫 approval UX；
+- 自己治理 third-party extensions；
+- 自己維護 remote sandbox provider；
+- 自己做 session migration；
+- 自己維護 RPC compatibility。
 
-  C --> D --> P
-```
+這些都是 adoption cost。
 
-這不是成熟度排序，而是**責任配置方式**。
-
-採用者越需要自行塑形 Runtime，通常也要自己擁有更多：
+## 比較時的證據優先順序
 
 ```text
-policy design
-extension governance
-execution isolation
-integration conventions
-testing / compatibility
+1. 官方 public docs / contracts
+2. package / source boundaries
+3. tests / protocol schema / generated docs
+4. current implementation details
+5. 社群慣例 / third-party packages
 ```
 
-## 第三個比較入口：失敗時你希望追哪一層？
+不要用某個 release 的 internal class name 推導永久 architecture。
 
-### Codex
+## 本章只要記住
 
-```text
-Client / Thread
-→ Runtime state
-→ Model / Tool
-→ Approval / Sandbox
-```
+1. **先比較 responsibility boundary，再比較功能。**
+2. **State、Extension、Security、Integration 是最能看出 Harness 哲學的四個軸。**
+3. **「可替換」會增加 ownership / compatibility cost。**
+4. **「內建很多」會降低組合自由，但可能大幅降低產品整合成本。**
+5. **選型不是找最高分，而是找 responsibility distribution 最符合你的團隊與產品。**
 
-### DeepSeek
-
-```text
-Profile / Plugin Tree
-→ Service
-→ Provider
-→ Consumer
-→ Event / Session
-```
-
-### Pi
-
-```text
-AgentSession
-→ Agent / SessionManager
-→ Extension / ResourceLoader
-→ Tool / Provider / OS environment
-```
-
-如果團隊已經有熟悉的 observability 與 ownership 模型，哪一套比較自然會很不一樣。
-
-## 第九章不做星等排行榜
-
-像這種表：
-
-```text
-Security ★★★★★
-Extensibility ★★★★
-Production ★★★
-```
-
-看起來簡單，但會把很多重要差異壓平。
-
-例如「Security」至少應拆成：
-
-```text
-built-in enforcement
-approval UX
-backend replaceability
-network policy
-credential handling
-external isolation ownership
-```
-
-因此後面的比較採用**責任、boundary、ownership**三層來寫，而不是單一分數。
-
-## 一張最短比較表
-
-| 問題 | Codex | DeepSeek Harness | Pi |
-|---|---|---|---|
-| Runtime 幫你決定多少 | 多 | 中等，且可重新 composition | 少 |
-| 最主要穩定中心 | `codex-core` / protocol | Cordis + service contracts | `Agent` + `AgentSession` |
-| Infrastructure 可替換性 | 有明確 extension，但 core 較 opinionated | 很高 | core 小，但很多責任直接移到外層 |
-| State 心智模型 | Thread / Turn / Item | Event-sourced Session | JSONL Entry Tree |
-| Security ownership | Runtime / product | formal providers / seams | 採用者與外部 environment 比重高 |
-| 最典型優勢 | 直接使用成熟 Coding Runtime | 設計 / 重組 Runtime | 快速塑形 minimal agent |
-
-## 讀完本頁，下一步做什麼？
-
-如果你要深入看三套在 Model、Loop、State、Tools、Extension、Security、Integration 上的差異：
-
-[繼續：架構維度逐項比較](./architecture-comparison.md)
-
-如果你已經有實際產品需求：
-
-[直接看：情境式選型](./scenario-selection.md)
-
-## 本頁只要記住
-
-1. **不要從 Feature Checklist 開始比較 Harness。**
-2. **先找 Runtime 的穩定中心，再看哪些 responsibility 可以替換。**
-3. **State、Security、Integration 是最能暴露架構哲學的三個入口。**
-4. **彈性不是單一維度；產品行為、Runtime infrastructure、Integration 要分開看。**
-5. **選型最後一定會變成 ownership 問題：哪些責任你真的願意長期自己維護？**
+下一篇：[架構維度逐項比較](./architecture-comparison.md)。

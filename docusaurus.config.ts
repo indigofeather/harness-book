@@ -26,9 +26,18 @@ function collectSidebarDocIds(items: SidebarEntry[]): string[] {
     if (typeof item === 'string') {
       return [item];
     }
-
     return item.items ? collectSidebarDocIds(item.items) : [];
   });
+}
+
+function resolveDocSourcePath(id: string): string {
+  for (const extension of ['.md', '.mdx']) {
+    const filename = path.resolve(process.cwd(), 'docs', `${id}${extension}`);
+    if (existsSync(filename)) {
+      return `${id}${extension}`;
+    }
+  }
+  return `${id}.md`;
 }
 
 function readDocTitle(id: string): string {
@@ -74,12 +83,12 @@ function renderSidebarForLlms(items: SidebarEntry[], depth = 0): string[] {
 
 const sidebarDocIds = collectSidebarDocIds(tutorialSidebar);
 const llmsSidebar = renderSidebarForLlms(tutorialSidebar).join('\n');
-const llmsRootContent = `繁體中文 Agent Harness 教材，以 OpenAI Codex、DeepSeek Harness 與 Pi 三套開源實作，系統化介紹 Agent Loop、Context、Tools、State、Security、Extensions、Integration、官方視覺素材與原始碼閱讀。\n\nSidebar navigation（網站的 canonical reading order）：\n${llmsSidebar}`;
-const llmsFullRootContent = `這是 Agent Harness 深度指南的完整 Markdown 合併版。內容依網站 Sidebar 的 canonical reading order 排列，涵蓋 Codex、DeepSeek Harness、Pi、三方比較、實務應用與原始碼導讀，適合直接提供給 LLM 作為完整教材 context。\n\nSidebar navigation：\n${llmsSidebar}`;
+const llmsRootContent = `繁體中文 Agent Harness 教材，以 OpenAI Codex、DeepSeek Harness 與 Pi 三套開源實作做對稱 case study，系統化介紹 Model/Loop、Context、Tools、State、Security、Extensions、Integration、Labs、Production 與原始碼閱讀。\n\nSidebar navigation（網站的 canonical reading order）：\n${llmsSidebar}`;
+const llmsFullRootContent = `這是 Agent Harness 深度指南的完整 Markdown 合併版。內容依網站 Sidebar 的 canonical reading order 排列：共同基礎 → Codex 完整導讀 → DeepSeek Harness 完整導讀 → Pi 完整導讀 → 三套 Labs → 比較與選型 → 真實系統 → 原始碼與參考資料。\n\nSidebar navigation：\n${llmsSidebar}`;
 
 const config: Config = {
   title: 'Agent Harness 深度指南',
-  tagline: '以 Codex、DeepSeek Harness 與 Pi 理解 Agent Runtime、架構取捨與 production integration',
+  tagline: '以 Codex、DeepSeek Harness、Pi 三套完整 case study 理解 Agent Runtime、架構取捨與 production integration',
   favicon: 'img/favicon.svg',
 
   future: {
@@ -121,8 +130,8 @@ const config: Config = {
         docsDir: 'docs',
         title: 'Agent Harness 深度指南',
         description:
-          '以 OpenAI Codex、DeepSeek Harness 與 Pi 三套開源實作理解 Agent Harness architecture、使用方式、擴充、安全、整合、官方素材與原始碼。',
-        includeOrder: sidebarDocIds.map((id) => `${id}.md`),
+          '以 OpenAI Codex、DeepSeek Harness 與 Pi 三套完整開源 case study，對稱理解 Agent Harness 的 Runtime、Model、Loop、Tools、State、Security、Extensions、Integration、Labs 與 Production。',
+        includeOrder: sidebarDocIds.map(resolveDocSourcePath),
         includeUnmatchedLast: false,
         excludeImports: true,
         removeDuplicateHeadings: true,
@@ -213,12 +222,19 @@ const config: Config = {
           label: '三套 Harness',
           position: 'left',
           items: [
-            {label: 'Codex｜架構總覽', to: '/docs/architecture/system-map'},
-            {label: 'Codex｜官方介面', to: '/docs/architecture/official-visuals'},
-            {label: 'DeepSeek Harness｜導讀', to: '/docs/deepseek/overview'},
-            {label: 'DeepSeek Harness｜官方畫面', to: '/docs/deepseek/official-visuals'},
-            {label: 'Pi｜導讀', to: '/docs/pi/overview'},
-            {label: 'Pi｜官方畫面', to: '/docs/pi/official-visuals'},
+            {label: 'Codex｜完整導讀', to: '/docs/architecture/system-map'},
+            {label: 'DeepSeek Harness｜完整導讀', to: '/docs/deepseek/overview'},
+            {label: 'Pi｜完整導讀', to: '/docs/pi/overview'},
+          ],
+        },
+        {
+          type: 'dropdown',
+          label: 'Labs',
+          position: 'left',
+          items: [
+            {label: 'Codex｜Trace a Turn', to: '/docs/labs/trace-a-turn'},
+            {label: 'DeepSeek｜Trace Turn / Step', to: '/docs/deepseek/labs/trace-turn-step'},
+            {label: 'Pi｜Trace Session Tree', to: '/docs/pi/labs/session-tree'},
           ],
         },
         {
@@ -226,7 +242,7 @@ const config: Config = {
           label: '比較與選型',
           position: 'left',
           items: [
-            {label: '第九章導讀｜比較框架', to: '/docs/comparison/overview'},
+            {label: '比較框架', to: '/docs/comparison/overview'},
             {label: '架構維度逐項比較', to: '/docs/comparison/architecture-comparison'},
             {label: '情境式選型', to: '/docs/comparison/scenario-selection'},
             {label: 'PoC、採用與混用策略', to: '/docs/comparison/adoption-playbook'},
@@ -238,18 +254,9 @@ const config: Config = {
           label: 'AI / LLM',
           position: 'right',
           items: [
-            {
-              label: 'AI / LLM 資源說明',
-              to: '/docs/reference/llm-resources',
-            },
-            {
-              label: 'llms.txt｜教材索引',
-              href: `${siteUrl}/llms.txt`,
-            },
-            {
-              label: 'llms-full.txt｜完整教材',
-              href: `${siteUrl}/llms-full.txt`,
-            },
+            {label: 'AI / LLM 資源說明', to: '/docs/reference/llm-resources'},
+            {label: 'llms.txt｜教材索引', href: `${siteUrl}/llms.txt`},
+            {label: 'llms-full.txt｜完整教材', href: `${siteUrl}/llms-full.txt`},
           ],
         },
         {href: 'https://github.com/indigofeather/harness-book', label: 'GitHub', position: 'right'},
@@ -259,14 +266,14 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: '學習',
+          title: '學習路徑',
           items: [
             {label: '從這裡開始', to: '/docs/intro'},
             {label: '學習地圖', to: '/docs/learning-map'},
             {label: '完整教材目錄', to: '/docs/catalog'},
-            {label: '第九章｜比較框架', to: '/docs/comparison/overview'},
-            {label: '情境式選型', to: '/docs/comparison/scenario-selection'},
-            {label: 'Harness 實務應用', to: '/docs/applications/workflows'},
+            {label: '共同基礎', to: '/docs/foundations/what-is-harness'},
+            {label: '比較框架', to: '/docs/comparison/overview'},
+            {label: 'Production Checklist', to: '/docs/applications/production-checklist'},
           ],
         },
         {
@@ -274,33 +281,31 @@ const config: Config = {
           items: [
             {label: 'Codex｜架構總覽', to: '/docs/architecture/system-map'},
             {label: 'Codex｜官方介面', to: '/docs/architecture/official-visuals'},
-            {label: 'DeepSeek Harness｜導讀', to: '/docs/deepseek/overview'},
-            {label: 'DeepSeek Harness｜官方畫面', to: '/docs/deepseek/official-visuals'},
-            {label: 'Pi｜導讀', to: '/docs/pi/overview'},
+            {label: 'DeepSeek｜完整導讀', to: '/docs/deepseek/overview'},
+            {label: 'DeepSeek｜官方畫面', to: '/docs/deepseek/official-visuals'},
+            {label: 'Pi｜完整導讀', to: '/docs/pi/overview'},
             {label: 'Pi｜官方畫面', to: '/docs/pi/official-visuals'},
           ],
         },
         {
-          title: '原始碼 / AI',
+          title: 'Labs / Source',
           items: [
-            {label: '三套 Harness 原始碼導讀', to: '/docs/reference/source-reading'},
-            {label: 'Codex Source Map', to: '/docs/reference/source-map'},
-            {label: 'DeepSeek Source Map', to: '/docs/reference/deepseek-source-map'},
-            {label: 'Pi Source Map', to: '/docs/reference/pi-source-map'},
-            {label: 'AI / LLM 資源', to: '/docs/reference/llm-resources'},
-            {label: 'llms.txt', href: `${siteUrl}/llms.txt`},
-            {label: 'llms-full.txt', href: `${siteUrl}/llms-full.txt`},
+            {label: 'Codex Labs', to: '/docs/labs/trace-a-turn'},
+            {label: 'DeepSeek Labs', to: '/docs/deepseek/labs/trace-turn-step'},
+            {label: 'Pi Labs', to: '/docs/pi/labs/session-tree'},
+            {label: '三套 Source Map', to: '/docs/reference/source-reading'},
+            {label: 'Glossary', to: '/docs/reference/glossary'},
           ],
         },
         {
-          title: '官方資源',
+          title: 'AI / 官方資源',
           items: [
+            {label: 'AI / LLM 資源', to: '/docs/reference/llm-resources'},
+            {label: 'llms.txt', href: `${siteUrl}/llms.txt`},
+            {label: 'llms-full.txt', href: `${siteUrl}/llms-full.txt`},
             {label: 'Codex Docs', href: 'https://developers.openai.com/codex'},
-            {label: 'Codex GitHub', href: 'https://github.com/openai/codex'},
             {label: 'DeepSeek Harness', href: 'https://deepseek.com/harness/en/'},
-            {label: 'DeepSeek Harness GitHub', href: 'https://github.com/deepseek-ai/deepseek-harness'},
             {label: 'Pi Docs', href: 'https://pi.dev/docs/latest'},
-            {label: 'Pi GitHub', href: 'https://github.com/earendil-works/pi'},
           ],
         },
       ],

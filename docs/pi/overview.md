@@ -1,105 +1,112 @@
 ---
-title: Pi Agent Harness：先建立正確心智模型
+title: Pi Agent Harness：Minimal Runtime 完整導讀
 ---
 
-# Pi Agent Harness：先建立正確心智模型
+# Pi Agent Harness：Minimal Runtime 完整導讀
 
-> 最後核對：2026-08-24。Pi 官方直接把自己稱為 **Agent Harness**，目前主 repository 為 [`earendil-works/pi`](https://github.com/earendil-works/pi)。
+> 最後核對：2026-08-24。Pi 官方直接把自己稱為 **Agent Harness**；目前主要 repository 是 [`earendil-works/pi`](https://github.com/earendil-works/pi)。
 
-Pi 最值得學的地方，不是它又做了一套 Coding Agent，而是它刻意選擇了與 Codex、DeepSeek Harness 都不同的穩定中心：
+Pi 最值得學的地方不是「又一套 Coding Agent」，而是它對 core boundary 做了非常鮮明的選擇：
 
-> **核心保持 minimal，把大量 workflow 與 product behavior 留給 extensions、skills、packages 與外部環境。**
+> **核心保持 minimal，把大量 workflow、UI、policy UX 與產品行為留給 extensions、resources、packages 與外部 execution environment。**
 
-如果只記一句話：
-
-```text
-Codex    → Productized / Opinionated Runtime
-DeepSeek → Composable Runtime Framework
-Pi       → Minimal / Self-extensible Harness
-```
-
-三者都能成為完整 Coding Agent，但「哪些東西應該內建」的答案非常不同。
-
-## 先看 Pi 官方 Interactive Mode
+## 先看官方 Interactive Mode
 
 ![Pi Interactive Mode 官方截圖](https://raw.githubusercontent.com/earendil-works/pi/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/interactive-mode.png)
 
-*官方原始素材：[`packages/coding-agent/docs/images/interactive-mode.png`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/interactive-mode.png)，由 Pi 官方 [`packages/coding-agent/README.md`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md#interactive-mode) 使用；來源 repo 採 MIT License。*
+*官方原始素材：[`packages/coding-agent/docs/images/interactive-mode.png`](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/docs/images/interactive-mode.png)，由官方 Coding Agent README 使用；來源 repo 採 MIT License。*
 
-這張圖很能代表 Pi 的哲學：預設 UI 很完整，但仍是一個相對薄的 presentation layer。官方 README 明確說 Extension 可以替換 editor、加入 widget、status line、footer 或 overlay，所以畫面不是一個封閉產品殼，而是可延伸的 AgentSession UI。
+這張圖很能代表 Pi：預設 TUI 已足夠完整，但 presentation / commands / widgets 仍可被 Extension 深度改造。
 
-## Pi 的 package map
-
-Pi monorepo 目前最重要的 package 是：
+## Package Map
 
 ```text
 @earendil-works/pi-ai
-→ multi-provider LLM abstraction
+→ multi-provider model abstraction
 
 @earendil-works/pi-agent-core
-→ stateful agent runtime、tool execution、event streaming
+→ minimal stateful Agent runtime、tools、events
 
 @earendil-works/pi-coding-agent
-→ terminal coding harness、sessions、tools、extensions、SDK / RPC
+→ AgentSession、sessions、resources、extensions、TUI、RPC、SDK
 
 @earendil-works/pi-tui
 → terminal UI primitives
 ```
 
-可以先把它想成：
-
 ```mermaid
 flowchart TB
-  UI[Interactive TUI / Print / JSON / RPC / SDK]
-  CA[pi-coding-agent\nAgentSession + Coding Tools + Resources]
-  AC[pi-agent-core\nAgent Loop + State + Tool Execution]
-  AI[pi-ai\nModels + Providers + Streaming]
-  LLM[Anthropic / OpenAI / Gemini / DeepSeek / Others]
+  UI[TUI / Print / JSON / RPC / SDK]
+  CA[pi-coding-agent\nAgentSession + Resources + Coding Tools]
+  AC[pi-agent-core\nAgent Loop + Tool Runtime]
+  AI[pi-ai\nProviders + Streaming]
+  M[Models]
 
   UI --> CA
   CA --> AC
   AC --> AI
-  AI --> LLM
+  AI --> M
 ```
 
-這個分層比「一個大型 coding-agent binary」更容易拆解。
+## Minimal 不等於功能少
 
-## Minimal 不代表功能少
+Pi 的 minimal philosophy 是：**不要把所有常見 Agent workflow 固定成 canonical core feature。**
 
-Pi 的 minimal philosophy 不是功能殘缺，而是**刻意不把所有高階 workflow 固化成 core feature**。
-
-官方目前明確列出的設計取向包括：
-
-```text
-No built-in MCP
-No built-in sub-agents
-No permission popups
-No plan mode
-No built-in to-dos
-No background bash
-```
-
-這些能力不是「不能做」，而是被推到：
+很多高階能力可以放到：
 
 ```text
 TypeScript Extension
 Skill
 Prompt Template
 Pi Package
-外部工具 / tmux / container
+SDK / external orchestrator
+container / microVM / shell environment
 ```
 
-因此 Pi 的問題不是：
+所以讀 Pi 時不要只問「有沒有某個 feature」，而要問：
 
-> 這個 feature 有沒有？
+> **這個 responsibility 被放在 core、extension、resource，還是 execution environment？**
 
-而比較像：
+## Model：pi-ai 是 first-class multi-provider layer
 
-> **這個 behavior 應該進 core，還是應該留在 extension / environment？**
+`pi-ai` 把 provider、model catalog、authentication、request / streaming vocabulary 抽離 Coding Agent。
 
-## 預設 Coding Agent 很小
+```mermaid
+flowchart LR
+  A[AgentSession / Agent] --> P[pi-ai]
+  P --> P1[Provider A]
+  P --> P2[Provider B]
+  P --> P3[Custom Provider]
+```
 
-Pi 預設提供的核心 coding tools 是：
+因此 Pi 的多模型不是附加 feature，而是 package boundary 本身的一部分。
+
+## Agent Loop：pi-agent-core 保持小
+
+`pi-agent-core` 提供的是低階 stateful Agent primitives：
+
+```text
+messages / state
+model streaming
+tool calls
+Tool execution
+Agent events
+continue / abort lifecycle
+```
+
+而 `pi-coding-agent` 的 `AgentSession` 再把 coding tools、session persistence、resources、extensions、TUI / RPC 等產品責任組起來。
+
+這個分層是 Pi 最值得學的地方之一：
+
+```text
+Low-level Agent Runtime
+≠
+Full Coding Agent Product Session
+```
+
+## Tools：預設小，Extension 可深度增加
+
+Pi 預設 coding tools 很精簡：
 
 ```text
 read
@@ -108,31 +115,107 @@ edit
 bash
 ```
 
-其他能力可以再透過 resource loader、extensions 或 SDK 注入。
+其他 capability 可以由 Extension 註冊。這使 Tool surface 更像「每個 Pi installation / workflow 自己塑形」，而不是 core 內建越多越好。
 
-這和 Codex 的產品哲學差異非常大：Codex 會把較多 repository workflow、安全 UX、client protocol 與 agent features 做成 first-party runtime capability；Pi 則努力讓 core 不因每種 workflow 都膨脹。
+## State：JSONL Session Tree
 
-## Multi-provider 是第一級能力
+Pi Session 存成 JSONL，但 entry 透過：
 
-Pi 的 `pi-ai` 不是單一 vendor wrapper。
-
-Model runtime 將 provider、model catalog、authentication 與 streaming 拆開，Coding Agent 可以在多家 provider / model 之間切換。官方目前支援的來源包含 Anthropic、OpenAI、Google、Amazon Bedrock、DeepSeek、Mistral、Groq、Cerebras、xAI、OpenRouter 等，也允許自訂 provider / model。
-
-心智模型是：
-
-```mermaid
-flowchart LR
-  A[AgentSession] --> MR[ModelRuntime / pi-ai Models]
-  MR --> A1[Provider A]
-  MR --> A2[Provider B]
-  MR --> A3[Custom Provider]
+```text
+id
+parentId
 ```
 
-所以不要把 Pi 理解成「某一家 Model 的 CLI」。
+形成 durable tree。
+
+```mermaid
+flowchart TB
+  A[Entry A] --> B[Entry B]
+  B --> C[Branch C]
+  B --> D[Branch D]
+  D --> E[Entry E]
+```
+
+所以 branch / fork / resume 不是 UI 特效，而是 persisted lineage 的直接結果。
+
+## Context / Compaction / Branch Summarization
+
+Pi 把三件事分得很清楚：
+
+```text
+Session Tree
+→ 保存完整 durable lineage
+
+Context reconstruction
+→ 選 current branch 需要的內容
+
+Compaction / Branch Summary
+→ 控制 context window、保留離開路徑的知識
+```
+
+這也是「State 不等於 Context」最直觀的實作之一。
+
+## ResourceLoader
+
+Pi 的 resources 包含：
+
+```text
+Skills
+Prompt Templates
+Themes
+Extensions
+Pi Packages
+```
+
+ResourceLoader 負責 global / project discovery 與載入；Project Trust 則會影響 project-local resources 是否應被信任與啟用。
+
+## Extensions：Pi 的核心產品哲學
+
+TypeScript Extension 可以深入很多 lifecycle boundary：
+
+```text
+register tools
+intercept tool call
+listen lifecycle events
+inject context
+customize compaction
+register commands / shortcuts / flags
+custom TUI
+append durable session entries
+register provider
+```
+
+```mermaid
+flowchart TB
+  E[Extension]
+  E --> T[Tools]
+  E --> L[Lifecycle]
+  E --> C[Context]
+  E --> U[UI]
+  E --> S[Session State]
+  E --> M[Model Providers]
+```
+
+Pi 能保持 core minimal，很大一部分就是因為 ExtensionAPI 足夠深。
+
+## Project Trust 與 Isolation 必須分開
+
+Project Trust 主要控制：
+
+```text
+project settings
+.pi/extensions
+project skills / prompts / themes
+project packages
+```
+
+但官方明確提醒：
+
+> **Project Trust 不是 Sandbox。**
+
+Pi 預設仍以啟動它的 OS user permissions 執行。若要更強 isolation，需要 container、microVM、其他 sandbox 或 Extension / execution wrapper。
 
 ## 四種主要使用模式
-
-Pi 官方把 coding agent 的執行方式分成四類：
 
 ```text
 Interactive TUI
@@ -141,179 +224,76 @@ RPC
 SDK
 ```
 
-```mermaid
-flowchart TB
-  AS[AgentSession]
-  AS --> I[Interactive Mode]
-  AS --> P[Print / JSON Mode]
-  AS --> R[RPC Mode\nstdin / stdout JSONL]
-  AS --> S[SDK\nIn-process Node.js]
-```
-
-重要的是：**這些 mode 不是四套不同 agent。**
-
-`AgentSession` 是共用中心，interactive / print / RPC 都在上面加自己的 I/O layer；Node.js integration 則可直接透過 SDK 建立 `AgentSession`。
-
-## Pi 的 State Model：JSONL Tree
-
-Pi 的 Session 非常值得單獨研究。
-
-Session 儲存成 JSONL，但不是單純線性 log：
-
-```text
-entry
-├─ id
-└─ parentId
-```
-
-所以同一個 session file 可以天然形成 tree：
+重要的是它們共用 `AgentSession`，不是四套不同 Agent。
 
 ```mermaid
 flowchart TB
-  A[Entry A] --> B[Entry B]
-  B --> C[Entry C]
-  B --> D[Entry D\n另一條 branch]
-  D --> E[Entry E]
+  A[AgentSession]
+  A --> I[Interactive]
+  A --> P[Print / JSON]
+  A --> R[RPC]
+  A --> S[SDK]
 ```
 
-這讓 Pi 可以：
+## Production / Governance
 
-- resume；
-- fork；
-- 在 `/tree` 中切 branch；
-- 對離開的 branch 做 summarization；
-- 在同一個 JSONL 裡保留不同探索路徑。
+Minimal core 把更多 responsibility 留給採用者，因此 production Pi 要特別關注：
 
-這和另外兩套 state abstraction 很不同：
+- Extension provenance；
+- project resource trust；
+- container / sandbox policy；
+- Session format compatibility；
+- custom provider compatibility；
+- RPC / SDK contract；
+- team-level distribution / pinning；
+- custom workflow regression tests。
 
-```text
-Codex
-→ Thread / Turn / Item
+這些不是 Pi 缺陷，而是 minimal architecture 的 ownership trade-off。
 
-DeepSeek
-→ Session / Turn / Step / SessionEvent
+## 完整閱讀順序
 
-Pi
-→ Session JSONL / Entry Tree / id-parentId
-```
+### A. 架構與 Runtime
 
-## Extensions 是 Pi 的核心產品哲學
-
-TypeScript Extension 可以做的不只是補 prompt。
-
-它可以：
-
-```text
-registerTool()
-on(event)
-registerCommand()
-registerShortcut()
-registerFlag()
-appendEntry()
-custom UI
-intercept tool call
-modify context
-customize compaction
-register provider
-```
-
-而且 project / global extension 可以用 `/reload` hot reload。
-
-因此 Pi 的 extension boundary 非常寬：
-
-```mermaid
-flowchart LR
-  EXT[TypeScript Extension]
-  EXT --> T[Tools]
-  EXT --> E[Lifecycle Events]
-  EXT --> C[Commands]
-  EXT --> UI[Custom TUI]
-  EXT --> S[Session Entries]
-  EXT --> M[Model Provider]
-```
-
-這也是為什麼 Pi 可以維持 core minimal，卻仍然讓使用者做很深的客製化。
-
-## Security：Project Trust 不是 Sandbox
-
-Pi 在安全哲學上與 Codex、DeepSeek 差異最大。
-
-官方非常明確：Pi 是 local coding agent，預設以**啟動它的使用者帳號權限**執行。
-
-Project Trust 的用途是：
-
-```text
-是否載入 project-local settings
-是否載入 .pi/extensions
-是否載入 project skills / prompts / themes
-是否安裝 project packages
-```
-
-但：
-
-> **Project Trust 不是 Sandbox。**
-
-它不會限制模型在啟動後透過 tools 可以要求 OS 做什麼。
-
-需要更強 isolation 時，官方建議把 execution boundary 放到外層，例如：
-
-```text
-Gondolin microVM extension
-Docker
-OpenShell
-其他 container / sandbox
-```
-
-所以三者的 security philosophy 可以先記成：
-
-```text
-Codex
-→ Security 是 productized runtime 核心能力
-
-DeepSeek
-→ Security 是 formal / replaceable capability seam
-
-Pi
-→ Core 預設信任本機 user boundary；強隔離交給外部環境或 extension
-```
-
-## Pi 最適合拿來學什麼？
-
-Pi 很適合回答這些問題：
-
-1. Coding Agent 最小核心到底需要什麼？
-2. AgentSession 與低階 Agent Runtime 應該怎麼分層？
-3. Multi-provider 怎麼做成 first-class runtime abstraction？
-4. Session 若直接建成 tree，branch / fork / compact 會變得多自然？
-5. Extension API 要開放到多深，才可以讓 core 不膨脹？
-6. 哪些安全責任一定要在 Harness 內，哪些可以交給 execution environment？
-
-## 三套 Harness 的第一張總覽
-
-| 面向 | Codex | DeepSeek Harness | Pi |
-|---|---|---|---|
-| 核心定位 | 完整 Coding Agent Runtime | 可重組 Runtime Framework | Minimal Coding Harness |
-| Runtime center | `codex-core` | Cordis + service contracts | `Agent` + `AgentSession` |
-| Model | Provider registry | LLM capability seam | `pi-ai` multi-provider |
-| State | Thread / Turn / Item | Event-sourced Session | JSONL tree entries |
-| Extension | Skills / MCP / Hooks / Rules 等 | Plugin / Provider / Consumer | TS Extensions / Skills / Packages |
-| Security | built-in、產品化 | formal、可替換 | 預設 user permission；外部 isolation |
-| Client | App Server / SDK / CLI | SDK / JSON-RPC / ACP / Host | TUI / Print / JSON / RPC / SDK |
-
-## 建議閱讀順序
-
-1. 本章：先建立 Pi 心智模型。
+1. [官方視角：Pi TUI 與 Session Tree](./official-visuals.md)
 2. [Pi 架構：從 pi-ai 到 AgentSession](./architecture.md)
-3. [Pi Session、Compaction 與 Extensions](./session-and-extensions.md)
-4. [Pi Integration、Project Trust 與 Security](./integration-and-security.md)
-5. [第九章導讀：如何比較 Agent Harness](../comparison/overview.md)
-6. [架構維度逐項比較](../comparison/architecture-comparison.md)
-7. [`earendil-works/pi` 原始碼導讀地圖](../reference/pi-source-map.md)
+3. [Model Providers：pi-ai](./model-providers.md)
+4. [Agent Loop 與 Tools](./agent-loop-and-tools.md)
+5. [Context、Compaction 與 Branching](./context-compaction-and-branching.md)
+6. [Session、Compaction 與 Extensions](./session-and-extensions.md)
+
+### B. Resources / Extensions
+
+7. [Resources、Skills、Prompts 與 Pi Packages](./resources-skills-and-packages.md)
+8. [Extensions 與自訂 TUI](./extensions-and-ui.md)
+
+### C. Security / Usage / Integration
+
+9. [Project Trust 與 Isolation](./project-trust-and-isolation.md)
+10. [CLI 與日常使用](./cli-and-usage.md)
+11. [SDK 與 RPC](./sdk-and-rpc.md)
+12. [Production 與 Governance](./production-and-governance.md)
+
+### D. Labs / Source
+
+13. Pi Labs：Session Tree / Extension / Branch & Compaction
+14. [`earendil-works/pi` Source Map](../reference/pi-source-map.md)
+
+## Pi 最值得學的七件事
+
+1. **Minimal 是 boundary choice，不是功能數量。**
+2. **Low-level Agent Runtime 與產品 AgentSession 可以明確分層。**
+3. **Multi-provider 可以從最底層就成為一級 abstraction。**
+4. **Session Tree 讓 branch / fork 成為 durable data model。**
+5. **ResourceLoader + ExtensionAPI 讓產品行為在 core 外快速塑形。**
+6. **Project Trust 與 execution isolation 是不同安全問題。**
+7. **Core 少做決定，代表 adoption team 要承擔更多 governance responsibility。**
 
 ## 官方來源
 
-- [Pi 官方網站](https://pi.dev/)
+- [Pi](https://pi.dev/)
 - [Pi Documentation](https://pi.dev/docs/latest)
 - [`earendil-works/pi`](https://github.com/earendil-works/pi)
-- [Coding Agent README 與 Interactive Mode 官方截圖](https://github.com/earendil-works/pi/blob/a470b121bf683b4c2b9fc0b3a7c807de7e0cfe9c/packages/coding-agent/README.md)
+- [Coding Agent README](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)
+- [Extensions](https://pi.dev/docs/latest/extensions)
+- [Sessions](https://pi.dev/docs/latest/sessions)
 - [Security](https://pi.dev/docs/latest/security)

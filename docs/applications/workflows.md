@@ -1,48 +1,51 @@
 ---
-title: 實務工作流：Harness 能拿來做什麼
+title: 實務工作流：把 Agent Loop 變成可驗證工程流程
 ---
 
-# 實務工作流：Harness 能拿來做什麼
+# 實務工作流：把 Agent Loop 變成可驗證工程流程
 
-真正有效的 Codex 應用，不是把需求換句話說成：
-
-> 請 AI 幫我寫 Code。
-
-而是把一個 Engineering Outcome 拆成：
+真正有效的 Agent Harness 應用，不是把需求改寫成「請 AI 幫我做」，而是把工程目標拆成可觀察、可執行、可限制、可驗證的閉環。
 
 ```mermaid
 flowchart LR
-  G[Goal\n要達成什麼] --> O[Observe\n先看哪些真實資訊]
-  O --> A[Act\n使用哪些 Tools]
-  A --> V[Verify\n怎麼確認結果]
+  G[Goal] --> O[Observe]
+  O --> A[Act]
+  A --> V[Verify]
   V -->|Not done| O
-  V -->|Done| D[Deliver\n輸出結果]
+  V -->|Done| D[Deliver]
 ```
 
-這就是把 Agent Loop 變成真實工作流。
+這套方法不屬於 Codex、DeepSeek Harness 或 Pi 任一產品；三套只是把同一組責任放在不同 extension / runtime boundary。
 
-## 任何 Agent Workflow 都先問六題
+## 六題 Workflow Template
 
-先不要急著選 Model、Skill 或 MCP。
+設計任何 Agent Workflow 前，先回答：
 
-先回答：
+| 問題 | 要定義什麼 |
+|---|---|
+| Goal | 最終 outcome |
+| Observe | 決策前需要哪些 evidence |
+| Act | 需要哪些 capabilities |
+| Constrain | 哪些 action 禁止、限縮或需 approval |
+| Verify | 怎麼證明結果真的完成 |
+| Persist | 哪些狀態必須跨步驟保存 |
 
-```mermaid
-flowchart TB
-  W[Workflow Design]
-  W --> G[Goal\n要達成什麼？]
-  W --> O[Observe\n需要看到什麼？]
-  W --> A[Act\n需要哪些 Tools？]
-  W --> C[Constrain\n哪些 Action 不可做？]
-  W --> V[Verify\n怎麼知道完成？]
-  W --> P[Persist\n哪些狀態要保存？]
-```
+## 三套 Harness 怎麼承接這六題？
 
-這六題幾乎可以拿來設計任何 Harness Workflow。
+| Responsibility | Codex | DeepSeek Harness | Pi |
+|---|---|---|---|
+| Guidance | Prompt / AGENTS.md / Skill | Prompt sections / Skills / Plugins | Prompt / Skills / Resources |
+| Capability | Built-in Tool / MCP | `ctx.tools` providers / Plugins | Built-in Tools / Extension tools |
+| Orchestration | Agent Loop / Skill / Subagent | Agent Loop / Workflow / Jobs / Subagent Providers | AgentSession / Extensions / external orchestrator |
+| Enforcement | Rules / Approval / Sandbox | Guards / Approval / Sandbox providers | Extension gates + OS/container isolation |
+| State | Thread / Turn / Item | SessionEvent log | JSONL Session Tree |
+| Integration | CLI / SDK / App Server | Web / SDK / JSON-RPC / ACP | CLI / JSON / RPC / SDK |
 
-## 從風險角度看 Workflow
+所以真正通用的問題不是「這件事要不要寫成 Skill」，而是：
 
-並不是所有任務都應給 Agent 一樣的權限。
+> **它屬於 Knowledge、Capability、Orchestration、Enforcement、State 還是 Integration？**
+
+## 風險階梯
 
 ```mermaid
 flowchart LR
@@ -51,175 +54,94 @@ flowchart LR
   R3 --> R4[Production / Destructive]
 ```
 
-越往右，越需要：
-
-- 更窄的 Permission；
-- 更明確的 Verification；
-- Approval / Review Gate；
-- Audit Trail；
-- Rollback Plan。
-
-下面的案例可以用這個風險階梯理解。
+越往右，越需要更窄的 capability、更明確的 verification、audit trail、approval 與 rollback。
 
 ## 1. Repository Comprehension
 
-### Goal
-
-快速建立陌生 Codebase 的心智模型。
-
-### Loop
+目標是快速建立陌生 codebase 的心智模型。
 
 ```mermaid
 flowchart LR
   E[Explore Entry Points] --> D[Trace Dependencies]
   D --> C[Confirm with Code]
-  C --> Q[Identify Unknowns]
-  Q -->|Need more evidence| E
-  Q --> S[Summarize Architecture]
+  C --> Q[Unknowns]
+  Q -->|Need evidence| E
+  Q --> S[Architecture Summary]
 ```
 
-### Harness Design
-
-適合：
-
-- read-only sandbox；
-- search / file tools；
-- 必要時 explorer subagents。
-
-Prompt 例：
-
-```text
-理解 checkout 流程。
-從 route / API entry point 開始，追到 payment provider、DB write、
-webhook reconciliation。不要修改檔案。
-最後輸出 sequence、核心檔案、失敗補償機制與仍不確定的地方。
-```
-
-這類任務不需要 write permission。
+建議：read-only、search/file capability、必要時才平行探索。三套 Harness 都能做到，但 delegation boundary 不同：Codex 可用 Subagent，DeepSeek 可用 Subagent Provider，Pi 常由外部 process / SDK / Extension 組合。
 
 ## 2. Bug Fix
-
-Bug Fix 最典型地展現 Agent Loop。
 
 ```mermaid
 flowchart LR
   R[Reproduce] --> H[Hypothesis]
   H --> I[Inspect Evidence]
-  I --> F[Fix Smallest Cause]
+  I --> F[Smallest Fix]
   F --> T[Test]
   T -->|Fail| H
-  T -->|Pass| S[Summarize Root Cause]
+  T -->|Pass| S[Explain Root Cause]
 ```
 
-真正重要的 Harness 能力不是「生成 Patch」，而是：
-
-> **能不能用真實 Test / Shell / File Result 閉環驗證？**
-
-沒有 Verify 的 Coding Agent，很容易只是產生「看起來合理」的修改。
+重點不是 Patch 生成，而是 **Test / Shell / File Result 是否真的回到 loop，形成可驗證閉環**。
 
 ## 3. Code Review
 
-Code Review 的主要動作是 Observe，不是 Write。
+主要行為是 Observe，不是 Write。
+
+```text
+Diff + Code Context + Targeted Tests
+→ Structured Findings
+→ Human / CI Gate
+```
+
+適合 read-only 或極窄 write capability。輸出最好固定包含 severity、location、risk、evidence、suggestion。
+
+## 4. Database / Migration
+
+把「產生 migration」與「執行 production migration」拆成不同 capability。
 
 ```mermaid
 flowchart LR
-  D[Diff] --> R[Reason about Risk]
-  T[Targeted Tests] --> R
-  C[Code Context] --> R
-  R --> F[Structured Findings]
+  A[Analyze] --> G[Generate Migration]
+  G --> V[Validate]
+  V --> P[Production Gate]
+  P --> E[Execute]
 ```
 
-適合：
+能修改 migration file，不代表能連 production DB。這個 separation 應由 runtime / environment enforcement 實現，不只是 prompt 說明。
 
-- read-only；
-- current diff；
-- targeted tests；
-- structured output。
+## 5. Large Refactor
 
-例如輸出：
+先定 invariants，再小批修改。
 
 ```text
-severity
-file / line
-risk
-supporting evidence
-suggestion
+Inventory
+→ establish invariants
+→ small batch
+→ verify
+→ next batch
 ```
 
-Final Gate 仍由 CI / Human Review 決定。
-
-## 4. Database / Migration Work
-
-這類工作風險比一般 Code Edit 高，應把「產生 Migration」和「執行 Production Migration」拆開。
-
-```mermaid
-flowchart LR
-  A[1. Analyze\nRead-only] --> G[2. Generate\nMigration + Rollback]
-  G --> V[3. Validate\nSchema / Tests]
-  V --> P[4. Production Gate]
-  P --> E[Execute in Prod]
-```
-
-關鍵原則：
-
-```text
-能寫 migration file
-≠
-能連 production DB
-```
-
-Harness 應把這兩種 capability 分離。
-
-## 5. Refactor
-
-Large Refactor 很適合 Agent，但要先定義 Invariants。
-
-```mermaid
-flowchart TB
-  R[Refactor Goal] --> I1[Public API unchanged]
-  R --> I2[Tests remain green]
-  R --> I3[Performance baseline]
-  R --> I4[Touch scope limited]
-  R --> I5[No unrelated cleanup]
-```
-
-沒有 invariants 時，Agent 很容易順手做很多「看起來更漂亮」但其實無關的修改。
-
-推薦流程：
-
-```text
-Inventory → establish invariants → small batch → test → next batch
-```
-
-而不是一次重寫整個模組。
+常見 invariants：public API 不變、tests 維持、performance baseline、touch scope 有界、不做 unrelated cleanup。
 
 ## 6. Dependency Upgrade
 
-Dependency Upgrade 是很適合 Agent 的「Observe + Modify + Verify」工作。
-
 ```mermaid
 flowchart LR
-  C[Read Changelog] --> U[Update Dependency]
-  U --> M[Apply Migration / Codemod]
+  C[Read Changelog] --> U[Update]
+  U --> M[Migration / Codemod]
   M --> B[Build / Test]
   B --> S[Search Deprecated APIs]
   S -->|Problems| M
-  S --> R[Summarize Risks]
+  S --> R[Risk Summary]
 ```
 
-可能需要 Network，但不代表需要 unrestricted internet。
-
-可以只開：
-
-```text
-registry
-official docs
-upstream source
-```
+需要 network 不代表要 unrestricted network；可以只開 registry、官方 docs、upstream source。
 
 ## 7. Incident Triage
 
-Incident Workflow 通常先大量 Read，再決定是否要 Write。
+先大量讀，再把 mitigation 放在獨立 gate 後。
 
 ```mermaid
 flowchart LR
@@ -232,98 +154,67 @@ flowchart LR
   G --> X[Rollback / Restart]
 ```
 
-此時：
-
-- **Skill** 很適合封裝 Incident SOP；
-- **MCP** 提供 Metrics / Logs / Deploy capability；
-- **Permission** 限制 Production Write。
-
-這正好展示「Knowledge / Capability / Enforcement」三層分工。
+Knowledge 可以來自 Skill / Resource；Observability capability 可以來自 MCP / Tool Provider / Extension；Production write 則必須由真正 enforcement 控制。
 
 ## 8. Documentation Drift
 
-這類工作通常風險低、可驗證性高，非常適合 Automation。
+低風險、可驗證，特別適合 unattended automation。
 
-```mermaid
-flowchart LR
-  S[Source of Truth] --> C[Compare]
-  D[Documentation] --> C
-  C --> F{Drift?}
-  F -->|No| OK[Done]
-  F -->|Yes| P[Prepare Patch]
-  P --> V[Validate Links / Build]
+```text
+Source of Truth
++ Documentation
+→ Compare
+→ Patch
+→ Link / Build Validation
 ```
 
-可以比較：
-
-- Public API vs Docs；
-- Config Schema vs Examples；
-- CLI `--help` vs Reference；
-- Generated Client vs Spec。
-
-## 9. Multi-agent Architecture Review
-
-大問題可以拆成專門 reviewer：
+## 9. Multi-agent / Multi-runtime Review
 
 ```mermaid
 flowchart TB
-  ROOT[Root Agent]
-  ROOT --> S[Security Reviewer]
-  ROOT --> P[Performance Reviewer]
-  ROOT --> D[Data Reviewer]
-  ROOT --> T[Test Reviewer]
-  S --> A[Aggregate Findings]
+  ROOT[Coordinator] --> S[Security Review]
+  ROOT --> P[Performance Review]
+  ROOT --> D[Data Review]
+  ROOT --> T[Test Review]
+  S --> A[Aggregate]
   P --> A
   D --> A
   T --> A
   A --> ROOT
 ```
 
-但 Multi-agent 不是免費午餐。
+三套對 delegation 的 canonical answer 不同，因此設計時應先問：
 
-每個 Subagent Output 最好：
+- child work 是否真的可獨立？
+- 是否需要 shared state？
+- output 是否足夠短、結構化、有 evidence？
+- 多 runtime protocol 是否值得引入？
 
-- 短；
-- 結構化；
-- 有證據；
-- 不重複全文 Context。
+不要為了「multi-agent」而製造更多 context pollution。
 
-否則只是在製造更多 Context Pollution。
-
-## 10. 自動 PR，而不是一開始就自動 Merge
-
-很多團隊最容易建立信任的起點是：
+## 10. 自動 PR，而不是直接自動 Merge
 
 ```mermaid
 flowchart LR
-  D[Agent Discovers Issue] --> P[Prepare Isolated Patch]
-  P --> T[Run Tests]
+  D[Discover] --> P[Prepare Isolated Patch]
+  P --> T[Test]
   T --> PR[Open PR]
   PR --> G[Human + CI Gate]
   G --> M[Merge]
 ```
 
-這個模式的好處：
+這是建立 automation trust 的好起點：Agent 真正做事，但 destructive boundary 仍由 review / CI 控制。
 
-- Agent 可以真正做事；
-- 改動仍有 review boundary；
-- 有 audit trail；
-- rollback / diff 容易理解。
-
-比直接讓 Agent 操作 Production 更容易逐步建立信任。
-
-## Workflow 不應只是「Prompt 模板」
-
-一個成熟 Workflow 其實跨越 Harness 的多個層次。
+## Workflow 不只是 Prompt Template
 
 ```mermaid
 flowchart TB
-  GOAL[Goal / Prompt]
-  KNOW[AGENTS / Skill\nKnowledge]
-  CAP[Tools / MCP\nCapability]
-  SAFE[Sandbox / Rules\nConstraint]
-  STATE[Thread / State\nPersistence]
-  VER[Test / Check\nVerification]
+  GOAL[Goal]
+  KNOW[Knowledge]
+  CAP[Capabilities]
+  SAFE[Constraints]
+  STATE[State]
+  VER[Verification]
 
   GOAL --> W[Workflow]
   KNOW --> W
@@ -333,36 +224,23 @@ flowchart TB
   VER --> W
 ```
 
-所以真正的 Agent Workflow Design，不是只寫一句好 Prompt。
-
-## 一個通用的 Workflow Template
-
-設計新任務時，可以直接填這六格：
-
-| 問題 | 你要填什麼 |
-|---|---|
-| Goal | 最終 Outcome |
-| Observe | Agent 必須讀到哪些 evidence |
-| Act | 需要哪些 Tools / MCP |
-| Constrain | 哪些 action 禁止或需 approval |
-| Verify | Test / Check / Human Gate |
-| Persist | 哪些狀態要跨 Turn 保存 |
-
-例如「自動修 Security Dependency」：
+## 一個跨 Harness 的例子：自動修 CVE
 
 ```text
 Goal      修掉指定 CVE
-Observe   package lock、usage、upstream advisory
+Observe   lockfile、usage、upstream advisory
 Act       edit dependency、run tests
-Constrain 不改 unrelated packages、不 deploy
+Constrain 不 deploy、不改 unrelated packages
 Verify    build + security scan + targeted tests
 Persist   修改理由、測試結果、未解風險
 ```
 
+在 Codex、DeepSeek、Pi 裡，具體 surface 不同，但 workflow responsibility 完全相同。
+
 ## 本章只要記住
 
 1. **Workflow = Goal → Observe → Act → Verify 的閉環。**
-2. **高風險任務要拆 capability，不要一次給滿權限。**
-3. **Verify 是 Agent Coding Workflow 的核心，不是最後附加步驟。**
-4. **Skill、MCP、Permission 分別處理 Knowledge、Capability、Enforcement。**
-5. **任何 Workflow 都可以用 Goal / Observe / Act / Constrain / Verify / Persist 六題設計。**
+2. **先分類 responsibility，再選某套 Harness 的 extension surface。**
+3. **高風險能力要拆開，不要一次給滿權限。**
+4. **Verification 是 workflow 核心，不是最後附加步驟。**
+5. **Harness 差異主要影響 capability / state / enforcement 被放在哪一層，不改變工程閉環本身。**
