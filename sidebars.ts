@@ -18,6 +18,7 @@ const sidebars: SidebarsConfig = {
       type: 'category', label: '二、再看 Codex Harness 架構', collapsed: true,
       items: [
         'architecture/system-map',
+        'architecture/official-visuals',
         'architecture/codex-core',
         'architecture/app-server-and-protocol',
         'architecture/model-provider-and-streaming',
@@ -67,6 +68,7 @@ const sidebars: SidebarsConfig = {
       type: 'category', label: '七、DeepSeek Harness：完整導讀', collapsed: true,
       items: [
         'deepseek/overview',
+        'deepseek/official-visuals',
         'deepseek/architecture',
         'deepseek/usage-and-profiles',
         'deepseek/session-and-events',
@@ -81,6 +83,7 @@ const sidebars: SidebarsConfig = {
       type: 'category', label: '八、Pi Agent Harness：Minimal Runtime', collapsed: true,
       items: [
         'pi/overview',
+        'pi/official-visuals',
         'pi/architecture',
         'pi/session-and-extensions',
         'pi/integration-and-security',
