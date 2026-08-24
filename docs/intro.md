@@ -240,7 +240,7 @@ Pi
 1. [學習地圖](./learning-map.md)
 2. [什麼是 Harness？](./foundations/what-is-harness.md)
 3. [Agent Loop](./foundations/agent-loop.md)
-4. [State Models 與 Lifecycle](./foundations/thread-turn-item.md)
+4. [State Models 與 Lifecycle](./foundations/state-models-and-lifecycle.md)
 
 ### 工程師 / Agent 重度使用者
 

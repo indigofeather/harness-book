@@ -64,7 +64,7 @@ flowchart TB
 1. [什麼是 Harness？](./foundations/what-is-harness.md)
 2. [Agent Loop](./foundations/agent-loop.md)
 3. [Context、Caching 與 Compaction](./foundations/context-and-caching.md)
-4. [State Models 與 Lifecycle](./foundations/thread-turn-item.md)
+4. [State Models 與 Lifecycle](./foundations/state-models-and-lifecycle.md)
 
 第四篇會直接並讀：
 

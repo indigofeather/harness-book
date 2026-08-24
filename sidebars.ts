@@ -14,7 +14,7 @@ const sidebars: SidebarsConfig = {
         'foundations/what-is-harness',
         'foundations/agent-loop',
         'foundations/context-and-caching',
-        'foundations/thread-turn-item',
+        'foundations/state-models-and-lifecycle',
       ],
     },
     {

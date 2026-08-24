@@ -13,7 +13,7 @@ title: 完整教材目錄
 - [什麼是 Harness？](./foundations/what-is-harness.md)
 - [Agent Loop：Think → Act → Observe](./foundations/agent-loop.md)
 - [Context、Caching 與 Compaction](./foundations/context-and-caching.md)
-- [State Models 與 Lifecycle：Codex、DeepSeek、Pi](./foundations/thread-turn-item.md)
+- [State Models 與 Lifecycle：Codex、DeepSeek、Pi](./foundations/state-models-and-lifecycle.md)
 
 ## 二、Codex｜Productized Runtime 完整導讀
 
